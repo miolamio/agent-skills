@@ -1,0 +1,63 @@
+{
+  "name": "miolamio-agent-skills",
+  "owner": {
+    "name": "Anthony Vdovitchenko",
+    "url": "https://t.me/aiwizards"
+  },
+  "metadata": {
+    "description": "Agent skills for Russian text processing, translation, and automation tools by @miolamio",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ru-editor",
+      "description": "Russian text editor — removes AI markers, applies informational style, fixes typography. Transforms AI-generated or bureaucratic Russian into natural, idiomatic text.",
+      "version": "2.1.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/ru-editor"],
+      "keywords": ["russian", "editing", "informational-style", "ai-markers"],
+      "category": "editing"
+    },
+    {
+      "name": "en-ru-translator-adv",
+      "description": "Professional English-to-Russian translator with three-step agentic workflow: translate, reflect, refine. Produces natural Russian that reads as if originally written by a native speaker.",
+      "version": "3.3.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/en-ru-translator-adv"],
+      "keywords": ["russian", "english", "translation", "informational-style"],
+      "category": "translation"
+    },
+    {
+      "name": "ru-textovod",
+      "description": "Russian spelling, punctuation, and grammar checker via Textovod.com API. Three modes: neural autocorrection, spelling check, punctuation check.",
+      "version": "1.0.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/ru-textovod"],
+      "keywords": ["russian", "spelling", "punctuation", "grammar", "proofreading"],
+      "category": "proofreading"
+    },
+    {
+      "name": "ascii-art-beautifier",
+      "description": "Beautifies and generates ASCII art diagrams in markdown files. Aligns Unicode box-drawing characters, fixes widths, validates symmetry. Includes Python validator.",
+      "version": "1.2.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/ascii-art-beautifier"],
+      "keywords": ["ascii", "diagrams", "markdown", "formatting"],
+      "category": "editing"
+    },
+    {
+      "name": "telegram-cli",
+      "description": "Telegram client for Claude Code — send/read messages, search chats, download media, manage contacts. Agent-first design with multiple output modes.",
+      "version": "1.0.0",
+      "source": "./",
+      "strict": false,
+      "skills": ["./skills/telegram-cli"],
+      "keywords": ["telegram", "messaging", "automation", "cli"],
+      "category": "automation"
+    }
+  ]
+}
