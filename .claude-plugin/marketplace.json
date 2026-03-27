@@ -48,6 +48,14 @@
       "source": "./skills/telegram-cli",
       "keywords": ["telegram", "messaging", "automation", "cli"],
       "category": "automation"
+    },
+    {
+      "name": "krrkt",
+      "description": "Russian text quality checker — scores text 0-10 and flags stop words, stamps, bureaucratese, and informational style issues. 1200+ pattern dictionary, Glvrd-compatible scoring.",
+      "version": "0.1.0",
+      "source": "./skills/krrkt",
+      "keywords": ["russian", "quality", "informational-style", "scoring", "stop-words"],
+      "category": "proofreading"
     }
   ]
 }

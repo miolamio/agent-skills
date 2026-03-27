@@ -22,6 +22,7 @@ Then install individual skills:
 /plugin install ru-textovod@miolamio-agent-skills
 /plugin install ascii-art-beautifier@miolamio-agent-skills
 /plugin install telegram-cli@miolamio-agent-skills
+/plugin install krrkt@miolamio-agent-skills
 ```
 
 ### Option 2: Universal Installer
@@ -138,6 +139,22 @@ Telegram client for Claude Code. Send and read messages, search chats, download 
 - Output modes: `--json`, `--toon` (saves 30-40% tokens), `--human`
 
 **Triggers:** "send telegram message", "read telegram", "tg"
+
+---
+
+### krrkt `v0.1.0`
+
+Russian text quality checker. Scores text 0-10 and flags stop words, stamps, bureaucratese, and other informational style issues using a 1200+ pattern dictionary with Glvrd-compatible scoring.
+
+**Features:**
+- Objective quality score 0-10 (7.5+ green, 5-7.4 orange, below 5 red)
+- Categorized findings with fix suggestions
+- Human and JSON output formats
+- File and batch checking support
+
+**Requires:** `pip install krrkt` or use via `uvx krrkt`
+
+**Triggers:** "проверь качество текста", "проверка качества", "стоп-слова", "krrkt", "check text quality"
 
 ---
 
