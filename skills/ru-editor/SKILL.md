@@ -11,7 +11,7 @@ description: Edits AI-generated or poorly written Russian text into natural, idi
 license: MIT
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 2.1.0
+  version: 2.2.0
   category: editing
 ---
 
@@ -49,6 +49,7 @@ Before editing, load the relevant reference files:
 | [references/pretentious-words.md](references/pretentious-words.md) | **Critical:** 100+ pairs of «заумно → просто» replacements — complex borrowed words with simple Russian equivalents | Always load before editing |
 | [references/typography.md](references/typography.md) | Quotation marks, dashes, lists, numbers, dates, letter «ё» | Load before editing |
 | [references/editing-examples.md](references/editing-examples.md) | 11 before/after pairs organized by problem type (AI, bureaucratese, pretentious words, euphemisms, unfounded claims, close synonyms, weak subjects) | Load for complex edits or unfamiliar text types |
+| [references/tech-anglicisms.md](references/tech-anglicisms.md) | Calques, transliterated anglicisms, untranslated English, mixed-language compounds, unexplained jargon — with replacement tables and exception rules | Load when editing technical or educational text |
 
 ## Three-Step Workflow
 
@@ -86,11 +87,17 @@ Read the text as a whole first. Understand its purpose, audience, and register. 
 
 15. **Redundancy in obvious context** — remove restating what is already clear from context: «в коде проекта» when working in a code editor, «в русском языке» when the entire text is Russian.
 
+16. **Anglicism audit** — replace unnecessary English in Russian text. Four sub-types: (a) untranslated English terms with Russian equivalents: "edge cases" → «граничные случаи», "error boundaries" → «обработчики ошибок»; (b) transliterated anglicisms: «хелперы» → «вспомогательные функции», «дебаг» → «отладка»; (c) mixed-language compounds: «accessibility-лейблы» → «атрибуты доступности»; (d) calques — literal translations of English idioms: «высокорычажная техника» → «самая эффективная техника». Keep English for proper names, commands, code, and established terms without equivalents (see `tech-anglicisms.md`).
+
+17. **Jargon clarity** — if the target audience is broader than narrow specialists, add a brief parenthetical explanation at first use of opaque jargon: «тосты (всплывающие уведомления)», «спиннеры (индикаторы загрузки)». Do not explain universally known terms (API, Git, URL).
+
+18. **Cliché «от X до Y»** — the pattern «от [something] до [something]» used as a substitute for actual enumeration. Replace with a concrete list: «от мега-промпта до Trust-Then-Verify Gap» → «мега-промпт, Kitchen Sink, Fix Loop, Trust-Then-Verify Gap и другие».
+
 Do not aim for perfection at this stage. Aim for clean, natural, readable Russian.
 
 ### Step 2 — Self-Reflection (Самопроверка)
 
-Reread your edit as a READER who has never seen the original. Run these 16 checks:
+Reread your edit as a READER who has never seen the original. Run these 19 checks:
 
 1. **AI vibe check** — would a native speaker write this unprompted? Does anything feel mechanical, overly balanced, or algorithmically structured? If you can't tell human from machine, it's not ready.
 
@@ -124,6 +131,12 @@ Reread your edit as a READER who has never seen the original. Run these 16 check
 
 16. **Contextual redundancy scan** — any phrases that restate what is already obvious from the surrounding context?
 
+17. **Anglicism scan** — any untranslated English terms with Russian equivalents? Transliterated anglicisms where a Russian word exists? Mixed-language compounds? Literal calques from English idioms? Check against `tech-anglicisms.md`.
+
+18. **Jargon clarity scan** — any opaque jargon without parenthetical explanation at first use? Would the target audience understand every term? Add «(пояснение)» where needed.
+
+19. **«От X до Y» scan** — any instances of the lazy «от [something] до [something]» pattern used instead of concrete enumeration? Replace with a list.
+
 Write specific, actionable notes. If all checks pass, proceed to Step 3 without changes.
 
 ### Step 3 — Polish (Финальная правка)
@@ -139,7 +152,7 @@ Apply all findings from Step 2. Then add the human element:
 ### When to Stop
 
 The edit is ready when:
-- All 16 checks from Step 2 pass.
+- All 19 checks from Step 2 pass.
 - The text flows when read aloud.
 - Zero meaning has been lost or distorted.
 - No mechanical repetition remains.

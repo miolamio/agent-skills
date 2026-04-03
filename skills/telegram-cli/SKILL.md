@@ -4,7 +4,7 @@ description: Interact with Telegram directly from Claude Code - send/read messag
 license: MIT
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 1.0.0
+  version: 1.1.0
   category: automation
 allowed-tools: Bash(tg:*)
 ---
@@ -78,6 +78,7 @@ Available on every command:
 -q, --quiet         # Suppress stderr output
 --profile <name>    # Use named profile (default: "default")
 --config <path>     # Custom config file path
+--daemon            # Route through persistent daemon connection
 ```
 
 ## Commands
@@ -86,9 +87,12 @@ Available on every command:
 
 ```bash
 tg auth login                         # Interactive login (TTY required)
+tg auth login --client desktop        # Login with official client preset (no API keys needed)
 tg auth status                        # Check if logged in, show current user
 tg auth logout                        # Destroy session
 ```
+
+Available `--client` presets: `desktop`, `android`, `ios`, `macos`, `web-z`, `web-k`.
 
 ### Session
 
@@ -113,6 +117,12 @@ tg chat members <chat>                # List members
 tg chat members <chat> --search "John"  # Search members by name
 tg chat members <chat> --limit 50 --offset 0
 tg chat topics <chat>                 # List forum topics (supergroups only)
+tg chat create "My Group"             # Create supergroup (default)
+tg chat create "News" --type channel  # Create channel
+tg chat create "Team" --type group --description "Team chat"
+tg chat edit <chat> --title "New Name"              # Edit title
+tg chat edit <chat> --description "Updated desc"    # Edit description
+tg chat kick <chat> <user>            # Kick user from group/channel
 ```
 
 ### Message - Reading
@@ -172,6 +182,15 @@ tg message poll <chat> --question "Vote" --option "Yes" --option "No" --public
 tg message poll <chat> --question "Quick?" --option "A" --option "B" --close-in 3600
 ```
 
+### Message - Watch (requires daemon)
+
+```bash
+tg message watch <chat>                               # Stream new messages in real-time (JSONL)
+tg message watch <chat> --topic <id>                  # Watch specific forum topic
+```
+
+Requires a running daemon (`tg daemon start`). Outputs JSONL stream of messages.
+
 ### Media
 
 ```bash
@@ -205,6 +224,28 @@ tg contact delete <user>              # Delete contact
 tg contact search "query"             # Search contacts
 tg contact search "query" --global    # Search all Telegram users
 tg contact search "query" --limit 10
+```
+
+### Daemon
+
+Persistent connection for faster sequential operations and real-time features:
+
+```bash
+tg daemon start                       # Start background daemon (5 min idle timeout)
+tg daemon start --idle-timeout 600    # Custom idle timeout in seconds
+tg daemon start --foreground          # Run in foreground (don't fork)
+tg daemon stop                        # Stop running daemon
+tg daemon status                      # Check status (running, pid, uptime)
+```
+
+Use `--daemon` flag on any command to route through persistent connection.
+
+### Shell Completion
+
+```bash
+tg completion bash                    # Generate bash completion script
+tg completion zsh                     # Generate zsh completion script
+tg completion fish                    # Generate fish completion script
 ```
 
 ## Chat identifiers

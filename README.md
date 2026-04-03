@@ -83,14 +83,16 @@ Professional English-to-Russian translator with a three-step agentic workflow: t
 
 ---
 
-### ru-editor `v2.1.0`
+### ru-editor `v2.2.0`
 
-Russian text editor. Transforms AI-generated or bureaucratic text into natural, idiomatic Russian. Three-step workflow: edit (15 operations), self-check (16 checks), final polish.
+Russian text editor. Transforms AI-generated or bureaucratic text into natural, idiomatic Russian. Three-step workflow: edit (18 operations), self-check (19 checks), final polish.
 
 **Features:**
 - Removes AI markers: ChatGPT-isms, repetitive structure, synonym triples
 - Cleans stop words, empty evaluations, bureaucratese, nominalizations
 - Replaces pretentious words with simple ones
+- Anglicism audit: replaces unnecessary English in Russian text
+- Jargon clarity: adds explanations for opaque terms at first use
 - Fixes typography: guillemets, em dashes, lists, letter "yo"
 
 **Triggers:** "отредактируй", "причеши текст", "убери ИИ-шность", "инфостиль"
@@ -126,16 +128,19 @@ Beautifies and generates ASCII art diagrams in markdown files. Uses Unicode box-
 
 ---
 
-### telegram-cli `v1.0.0`
+### telegram-cli `v1.1.0`
 
 Telegram client for Claude Code. Send and read messages, search chats, download media, manage contacts -- all from the terminal.
 
 **Requires:** `npm install -g @miolamio/tg-cli`
 
 **Features:**
-- Messages: read, send, search, forward, reactions, polls
-- Chats: list, info, members, forum topics
+- Messages: read, send, search, forward, reactions, polls, real-time watch
+- Chats: list, info, members, forum topics, create, edit, kick
 - Media: download and upload files
+- Daemon mode: persistent background connection with idle timeout
+- Client presets: desktop, android, ios auth via opentele
+- Shell completions: bash, zsh, fish
 - Output modes: `--json`, `--toon` (saves 30-40% tokens), `--human`
 
 **Triggers:** "send telegram message", "read telegram", "tg"

@@ -135,6 +135,47 @@ Telegram enforces rate limits. For bulk operations:
 - Space out search queries
 - Use batch operations where available (e.g., `tg message get` with multiple IDs)
 
+## Daemon mode for sequential operations
+
+When performing multiple operations in sequence, use daemon mode to avoid reconnecting each time:
+
+```bash
+# Start daemon once
+tg daemon start
+
+# All commands reuse the persistent connection
+tg chat list --daemon --toon
+tg message history @channel --daemon --limit 50
+tg message search --query "report" --daemon --limit 10
+
+# Stop when done
+tg daemon stop
+```
+
+The `--daemon` flag auto-starts the daemon if not running. The daemon auto-stops after 5 minutes of inactivity.
+
+### Watch for new messages (real-time)
+
+```bash
+# Requires running daemon
+tg daemon start
+tg message watch @channel              # Stream new messages as JSONL
+tg message watch @group --topic 42     # Watch specific forum topic
+```
+
+### Chat management
+
+```bash
+# Create a new group
+tg chat create "Project Team" --type supergroup --description "Project coordination"
+
+# Modify an existing chat
+tg chat edit @mygroup --title "Updated Name" --description "New description"
+
+# Remove a user
+tg chat kick @mygroup @troublemaker
+```
+
 ## Stdin piping for dynamic content
 
 Generate content and send it directly:

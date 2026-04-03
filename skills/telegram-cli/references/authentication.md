@@ -66,12 +66,25 @@ Profiles store separate sessions and config. Default profile name is `"default"`
 
 ## Credentials
 
-The CLI needs `TG_API_ID` and `TG_API_HASH` from https://my.telegram.org/apps.
+### Quick start with client presets
+
+Use `--client` to skip manual API credential setup:
+
+```bash
+tg auth login --client desktop
+```
+
+Available presets: `desktop`, `android`, `ios`, `macos`, `web-z`, `web-k`. Credentials are fetched at runtime from opentele (open-source) and cached locally for 30 days.
+
+### Manual credentials
+
+Get `TG_API_ID` and `TG_API_HASH` from https://my.telegram.org/apps.
 
 Resolution order:
 1. Environment variables: `TG_API_ID`, `TG_API_HASH`
-2. Config file: `~/.config/telegram-cli/config.json`
-3. Custom config: `--config /path/to/config.json`
+2. Client preset: `--client <name>`
+3. Config file: `~/.config/telegram-cli/config.json`
+4. Custom config: `--config /path/to/config.json`
 
 ## Logout
 
