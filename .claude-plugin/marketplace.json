@@ -12,7 +12,7 @@
     {
       "name": "ru-editor",
       "description": "Russian text editor — removes AI markers, applies informational style, fixes typography. Transforms AI-generated or bureaucratic Russian into natural, idiomatic text.",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "source": "./skills/ru-editor",
       "keywords": ["russian", "editing", "informational-style", "ai-markers"],
       "category": "editing"
@@ -44,7 +44,7 @@
     {
       "name": "telegram-cli",
       "description": "Telegram client for Claude Code — send/read messages, search chats, download media, manage contacts. Agent-first design with multiple output modes.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./skills/telegram-cli",
       "keywords": ["telegram", "messaging", "automation", "cli"],
       "category": "automation"

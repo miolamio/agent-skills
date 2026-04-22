@@ -79,6 +79,25 @@ Every section follows the same template:
 
 **Fix:** Vary section structure. Some sections should be longer, some shorter. Some need lists, others work as prose.
 
+### Contrastive «X, а не Y» pile-up (антитеза-дрэмбит)
+
+AI stacks "X, а не Y" constructions in parallel to create artificial rhetorical balance. Human writers use this pattern occasionally; AI uses it mechanically across consecutive bullets, definitions, and speaker notes.
+
+Examples of the pattern stacking:
+- «Проектирует систему, а не работает внутри неё руками»
+- «Продаёт результат, а не часы»
+- «Уходит на развитие системы, а не на рутину»
+
+Three or more «X, а не Y» constructions in close proximity (consecutive bullets, adjacent sentences, the same paragraph) is a strong AI marker — even if each individual sentence reads fine.
+
+Related variants that trigger the same pattern:
+- «не X, а Y» — inverted form
+- «X, но не Y» — weakened form
+- «Это не X. Это Y» — broken into two sentences, still a pile-up when repeated
+- «Это X, а не Y» / «— это X, а не Y» — copula definitional form («OME — это продуманная архитектура, а не героическая самозанятость»). Even as a single instance this reads as classic AI-slop when used in headlines, подвалы, «Зачем» блоках or slide definitions.
+
+**Fix:** Vary structure aggressively. Most positive statements don't need the implicit contrast — say what something IS, drop what it isn't. If the contrast is load-bearing, move the negation into its own sentence: «X. Y в ней не работает». Or restructure so only one "а не" survives in any three-bullet block. For the copula form «Это X, а не Y», say what the thing IS in one sentence and put the denial in a second sentence: «Это X. Y здесь ни при чём.»
+
 ---
 
 ## 3. Tone Markers (Маркеры тона)
@@ -238,3 +257,4 @@ Read the text and count. If you find 3+ of these, the text needs heavy editing:
 - [ ] Euphemism overuse (section 7) — problems softened beyond recognition
 - [ ] Transitional words at every paragraph start (во-первых, далее, более того)
 - [ ] Unfounded claims (всё больше, в последнее время, стремительно)
+- [ ] «X, а не Y» pile-up — contrastive antithesis stacked 3+ times in close range
