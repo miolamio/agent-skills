@@ -23,6 +23,7 @@ SCHEMA_VERSION = "1.0"
 import re
 from dataclasses import dataclass
 from functools import cached_property
+from typing import Callable, Literal
 
 
 _CODE_BLOCK_RE = re.compile(r"```.*?```", re.DOTALL)
@@ -106,3 +107,105 @@ class Document:
     def numeric_tokens(self) -> set[str]:
         # Numbers from prose only (not code).
         return set(_NUMERIC_RE.findall(self.prose))
+
+
+Severity = Literal["HARD_FAIL", "WARN"]
+Mode = Literal["absolute", "diff"]
+RunMode = Literal["check", "diff", "both"]
+
+_VALID_SEVERITIES = ("HARD_FAIL", "WARN")
+_VALID_MODES = ("absolute", "diff")
+
+
+@dataclass(frozen=True)
+class Finding:
+    check: str
+    severity: Severity
+    line: int
+    col: int
+    match: str
+    context: str
+    message: str
+
+    def to_dict(self) -> dict:
+        return {
+            "check": self.check,
+            "severity": self.severity,
+            "line": self.line,
+            "col": self.col,
+            "match": self.match,
+            "context": self.context,
+            "message": self.message,
+        }
+
+
+CheckFn = Callable[[Document, "Document | None", dict], list[Finding]]
+
+
+@dataclass(frozen=True)
+class Check:
+    name: str
+    severity: Severity
+    mode: Mode
+    description: str
+    fn: CheckFn
+
+
+REGISTRY: dict[str, Check] = {}
+
+
+def register(*, name: str, severity: str, mode: str, description: str):
+    """Decorator: register a check function under `name`.
+
+    Raises ValueError on invalid severity, mode, or duplicate name.
+    """
+    if severity not in _VALID_SEVERITIES:
+        raise ValueError(f"invalid severity: {severity!r}; expected one of {_VALID_SEVERITIES}")
+    if mode not in _VALID_MODES:
+        raise ValueError(f"invalid mode: {mode!r}; expected one of {_VALID_MODES}")
+    if name in REGISTRY:
+        raise ValueError(f"duplicate check name: {name!r}")
+
+    def deco(fn: CheckFn) -> CheckFn:
+        REGISTRY[name] = Check(name=name, severity=severity, mode=mode,
+                               description=description, fn=fn)
+        return fn
+
+    return deco
+
+
+def run_checks(
+    doc: Document,
+    source: Document | None,
+    mode: RunMode,
+    ctx: dict | None = None,
+) -> list[Finding]:
+    """Run checks selected by mode. Returns flat list of findings."""
+    if mode == "diff" and source is None:
+        raise ValueError("diff mode requires source document")
+    if mode == "both" and source is None:
+        raise ValueError("both mode requires source document")
+
+    ctx = ctx or {}
+    findings: list[Finding] = []
+    for check in REGISTRY.values():
+        run_this = (
+            (mode == "check" and check.mode == "absolute")
+            or (mode == "diff" and check.mode == "diff")
+            or (mode == "both")
+        )
+        if not run_this:
+            continue
+        try:
+            result = check.fn(doc, source, ctx)
+        except Exception as exc:  # noqa: BLE001
+            findings.append(Finding(
+                check=check.name,
+                severity="HARD_FAIL",
+                line=0, col=0, match="",
+                context="",
+                message=f"check raised {type(exc).__name__}: {exc}",
+            ))
+            continue
+        findings.extend(result)
+    return findings
