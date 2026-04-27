@@ -1,0 +1,5 @@
+{
+  "extraPaths": ["skills/ru-editor/scripts"],
+  "include": ["skills/ru-editor/scripts"],
+  "pythonVersion": "3.11"
+}
