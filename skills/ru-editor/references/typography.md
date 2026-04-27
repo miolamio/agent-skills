@@ -31,14 +31,39 @@ Examples: кто-то, из-за, по-русски, всё-таки, как-н�
 **En dash (–, короткое тире):** numeric ranges, without spaces.
 Examples: 10–15 минут, 2020–2025, стр. 40–45, понедельник–пятница.
 
-**Em dash (—, длинное тире):** everything else. Always with spaces on both sides.
-Examples:
-- Definitions: Автоматизация — ключ к эффективности.
-- Parenthetical: Навыки — один из самых мощных способов — позволяют настроить Claude.
-- Subject–predicate replacement: Компания — лидер рынка.
-- Before clauses: Мы завершили сделку — это позволит расширить линейку.
+**Em dash (—, длинное тире):** by grammatical or semantic function only — not as a decorative AI pause. Always with spaces on both sides.
 
-CRITICAL: always use proper Unicode characters in translation output.
+### When to use em dash
+
+- **Subject–predicate copula** (replaces implicit «есть»): Компания — лидер рынка. Москва — столица.
+- **Definitions** where intonation breaks before the explanation: Автоматизация — передача рутинных задач машине.
+- **Constructions with «это»**: Хороший редактор — это тот, кто знает, когда не править.
+- **Direct speech**: «Что вы делаете?» — спросил он.
+- **Author's pause** for emphasis (sparingly, max once per paragraph): Мы завершили сделку — наконец-то.
+
+### When NOT to use em dash
+
+If you reach for em dash to add «punchy rhythm» — stop. The AI overuse pattern is:
+
+| Bad | Why | Better |
+|---|---|---|
+| Наш подход — это не просто инструмент — это новая философия. | Decorative double-dash. | Наш подход помогает быстрее согласовывать задачи. |
+| Система анализирует данные — выявляет риски — предлагает решение. | Dash as list separator. | Система анализирует данные, выявляет риски и предлагает решение. |
+| Мы запустили продукт — продажи выросли. | Two separate thoughts. | Мы запустили продукт. Продажи выросли. |
+
+**Hard limit:** at most one em dash per paragraph. If a paragraph needs more, restructure.
+
+### Dash discipline reference
+
+| Pause function | Right punctuation |
+|---|---|
+| Two separate thoughts | Period |
+| Weak pause inside one thought | Comma |
+| Second part explains or enumerates | Colon |
+| Subject = predicate | Em dash |
+| Decorative AI rhythm | None — restructure |
+
+CRITICAL: always use proper Unicode characters.
 - Em dash: — (U+2014), not double hyphen (--)
 - En dash: – (U+2013), not single hyphen (-)
 - Never use double hyphen (--) as a substitute for any type of dash.
@@ -86,7 +111,7 @@ Used when items are marked with a number + parenthesis (1)), lowercase letter + 
 
 Since Markdown uses `- ` (dash) or `* ` (asterisk) as markers, apply these rules:
 
-**Items are complete sentences** → capital letter, period at end of each:
+**Items are complete sentences:** capital letter, period at end of each:
 
 ```
 - Навык загружается автоматически.
@@ -94,7 +119,7 @@ Since Markdown uses `- ` (dash) or `* ` (asterisk) as markers, apply these rules
 - Результат сохраняется в выходной файл.
 ```
 
-**Items are phrases or fragments** → lowercase, semicolon, period at the very end:
+**Items are phrases or fragments:** lowercase, semicolon, period at the very end:
 
 ```
 Для создания навыка потребуется:
@@ -103,7 +128,7 @@ Since Markdown uses `- ` (dash) or `* ` (asterisk) as markers, apply these rules
 - примеры входных и выходных данных.
 ```
 
-**Items are single words or very short noun phrases** → lowercase, comma or semicolon, period at the very end:
+**Items are single words or very short noun phrases:** lowercase, comma or semicolon, period at the very end:
 
 ```
 Поддерживаемые форматы:
