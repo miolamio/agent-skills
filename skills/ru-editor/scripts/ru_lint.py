@@ -353,3 +353,170 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+# ---------------------------------------------------------------------------
+# Phase-1-locked absolute checks (Task 8)
+# ---------------------------------------------------------------------------
+
+import tomllib
+
+_REFERENCES_DIR = Path(__file__).resolve().parent.parent / "references"
+_BANNED_MARKERS_PATH = _REFERENCES_DIR / "banned-markers.toml"
+
+
+def _load_banned_markers() -> dict:
+    with open(_BANNED_MARKERS_PATH, "rb") as fp:
+        return tomllib.load(fp)
+
+
+def _line_col_of(text: str, idx: int) -> tuple[int, int]:
+    """Translate string index to (1-based line, 0-based column)."""
+    line = text.count("\n", 0, idx) + 1
+    last_nl = text.rfind("\n", 0, idx)
+    col = idx - (last_nl + 1) if last_nl >= 0 else idx
+    return line, col
+
+
+def _context_around(text: str, idx: int, span: int = 30) -> str:
+    start = max(0, idx - span)
+    end = min(len(text), idx + span)
+    s = text[start:end].replace("\n", " ")
+    return s.strip()
+
+
+_EMOJI_RE = re.compile(
+    "[\U0001F300-\U0001FAFF"
+    "☀-➿"
+    "\U0001F900-\U0001F9FF"
+    "]"
+)
+
+
+@register(name="no_emoji", severity="HARD_FAIL", mode="absolute",
+          description="Финальный текст не должен содержать emoji.")
+def _check_no_emoji(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    for m in _EMOJI_RE.finditer(text):
+        line, col = _line_col_of(text, m.start())
+        out.append(Finding(
+            check="no_emoji", severity="HARD_FAIL",
+            line=line, col=col, match=m.group(0),
+            context=_context_around(text, m.start()),
+            message="Emoji в финальной русской прозе запрещены (Output Discipline).",
+        ))
+    return out
+
+
+_ARROW_RE = re.compile(r"→|⇒|=>|->")
+
+
+@register(name="no_arrows_in_prose", severity="HARD_FAIL", mode="absolute",
+          description="Стрелки → => -> ⇒ запрещены в русской прозе вне кода.")
+def _check_no_arrows(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    for m in _ARROW_RE.finditer(text):
+        line, col = _line_col_of(text, m.start())
+        out.append(Finding(
+            check="no_arrows_in_prose", severity="HARD_FAIL",
+            line=line, col=col, match=m.group(0),
+            context=_context_around(text, m.start()),
+            message="Стрелка в русской прозе. Используйте «заменить на», «состоит из», «после этого».",
+        ))
+    return out
+
+
+_STRAIGHT_QUOTE_RE = re.compile(r'["\']')
+
+
+@register(name="no_straight_quotes", severity="HARD_FAIL", mode="absolute",
+          description="Прямые кавычки запрещены в русском тексте вне кода.")
+def _check_no_straight_quotes(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    for m in _STRAIGHT_QUOTE_RE.finditer(text):
+        line, col = _line_col_of(text, m.start())
+        out.append(Finding(
+            check="no_straight_quotes", severity="HARD_FAIL",
+            line=line, col=col, match=m.group(0),
+            context=_context_around(text, m.start()),
+            message="Прямая кавычка в русском тексте. Используйте «» для основных, „“ для вложенных.",
+        ))
+    return out
+
+
+_DOUBLE_HYPHEN_RE = re.compile(r"--")
+
+
+@register(name="no_double_hyphen", severity="HARD_FAIL", mode="absolute",
+          description="Двойной дефис -- запрещён вне кода.")
+def _check_no_double_hyphen(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    for m in _DOUBLE_HYPHEN_RE.finditer(text):
+        line, col = _line_col_of(text, m.start())
+        out.append(Finding(
+            check="no_double_hyphen", severity="HARD_FAIL",
+            line=line, col=col, match=m.group(0),
+            context=_context_around(text, m.start()),
+            message="Двойной дефис вне кода. Используйте em dash (—).",
+        ))
+    return out
+
+
+_BLOCK_BOUNDARY_RE = re.compile(r"\n(\s*(?:[-*+]|\d+\.)\s)")
+_PARAGRAPH_SPLIT_RE = re.compile(r"\n\s*\n")
+
+
+def _split_into_blocks(text: str) -> list[str]:
+    """Split prose into blocks: each paragraph + each list-item is a block."""
+    # Promote list-item lines to paragraph boundaries by inserting blank lines.
+    promoted = _BLOCK_BOUNDARY_RE.sub(r"\n\n\1", text)
+    return [b for b in _PARAGRAPH_SPLIT_RE.split(promoted) if b.strip()]
+
+
+@register(name="em_dash_budget", severity="WARN", mode="absolute",
+          description=">1 em dash в одном блоке (абзаце или list-item).")
+def _check_em_dash_budget(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for block in _split_into_blocks(doc.prose):
+        count = block.count("—")
+        if count > 1:
+            # Find first em dash in block to anchor the finding.
+            idx = doc.prose.find(block)
+            offset = block.find("—")
+            line, col = _line_col_of(doc.prose, idx + offset) if idx >= 0 else (0, 0)
+            out.append(Finding(
+                check="em_dash_budget", severity="WARN",
+                line=line, col=col, match="—",
+                context=block.strip()[:80].replace("\n", " "),
+                message=f"В блоке {count} em dash. Hard limit — 1. Перепишите через точку или двоеточие.",
+            ))
+    return out
+
+
+@register(name="no_banned_markers", severity="HARD_FAIL", mode="absolute",
+          description="Запрещённые AI-маркеры из banned-markers.toml [hard_fail_markers].")
+def _check_no_banned_markers(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    markers = _load_banned_markers().get("hard_fail_markers", {}).get("phrases", [])
+    text = doc.prose
+    text_lower = text.lower()
+    for phrase in markers:
+        p_lower = phrase.lower()
+        start = 0
+        while True:
+            idx = text_lower.find(p_lower, start)
+            if idx < 0:
+                break
+            line, col = _line_col_of(text, idx)
+            out.append(Finding(
+                check="no_banned_markers", severity="HARD_FAIL",
+                line=line, col=col, match=phrase,
+                context=_context_around(text, idx),
+                message=f"Запрещённый AI-маркер: «{phrase}». См. banned-markers.toml.",
+            ))
+            start = idx + len(p_lower)
+    return out
