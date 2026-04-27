@@ -351,10 +351,6 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
-
-
 # ---------------------------------------------------------------------------
 # Phase-1-locked absolute checks (Task 8)
 # ---------------------------------------------------------------------------
@@ -520,3 +516,7 @@ def _check_no_banned_markers(doc: Document, source: Document | None, ctx: dict) 
             ))
             start = idx + len(p_lower)
     return out
+
+
+if __name__ == "__main__":
+    sys.exit(main())
