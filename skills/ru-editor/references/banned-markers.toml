@@ -1,0 +1,40 @@
+# ru-editor banned markers — machine-readable source of truth.
+#
+# Read by:
+#   - skills/ru-editor/scripts/ru_lint.py (HARD_FAIL / WARN checks)
+#   - skills/ru-editor/SKILL.md (## QA Gate cites these — keep in sync manually until v3.0)
+#
+# Structure:
+#   [meta]                   schema_version
+#   [hard_fail_markers]      phrases that must NEVER survive in final output
+#   [warn_markers]           phrases that warrant a warning but do not block
+#   [synonym_clusters]       groups of close synonyms — alert if 3+ from same cluster appear in proximity
+#
+# When adding a marker:
+#   1. Add phrase to appropriate section.
+#   2. Run: bash scripts/run_all_tests.sh
+#   3. If false-positives surface in seed corpus, narrow the phrase or move to warn_markers.
+
+[meta]
+schema_version = "1.0"
+
+[hard_fail_markers]
+# Phase 1 locked these in. Lowercase, exact-match (case-insensitive comparison happens in linter).
+phrases = [
+  "погружаемся",
+  "погрузимся",
+  "ландшафт",
+  "гобелен",
+  "является свидетельством",
+  "стоит отметить",
+]
+
+[warn_markers]
+# To be filled empirically during grounding (Task 7). Stays empty until then.
+phrases = []
+
+[synonym_clusters]
+# Detected during AI-output drift: model cycles synonyms within one document.
+# 3+ members from same cluster within 500 chars → WARN.
+product_drift = ["продукт", "решение", "инструмент", "платформа"]
+user_drift    = ["пользователь", "клиент", "человек", "специалист"]
