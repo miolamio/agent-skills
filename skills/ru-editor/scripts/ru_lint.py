@@ -209,3 +209,148 @@ def run_checks(
             continue
         findings.extend(result)
     return findings
+
+
+# ---------------------------------------------------------------------------
+# CLI — argparse + JSON output schema v1 + exit codes
+# ---------------------------------------------------------------------------
+
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+
+
+def _load_doc(path_str: str) -> Document:
+    p = Path(path_str)
+    if not p.is_file():
+        raise FileNotFoundError(f"file not found: {path_str}")
+    return Document(text=p.read_text(encoding="utf-8"), path=str(p))
+
+
+def _format_human(findings: list[Finding], mode: str, hard: int, warn: int, elapsed_ms: int) -> str:
+    lines: list[str] = []
+    if not findings:
+        lines.append(f"── ru_lint {mode}: no findings ({elapsed_ms} ms) ──")
+        return "\n".join(lines) + "\n"
+
+    by_sev: dict[str, list[Finding]] = {"HARD_FAIL": [], "WARN": []}
+    for f in findings:
+        by_sev.setdefault(f.severity, []).append(f)
+
+    for sev in ("HARD_FAIL", "WARN"):
+        if by_sev[sev]:
+            lines.append(f"── {sev} ({len(by_sev[sev])}) ──")
+            for f in by_sev[sev]:
+                where = f"L{f.line}:C{f.col}" if f.line else ""
+                lines.append(f"  [{f.check}] {where} {f.message}")
+                if f.match:
+                    lines.append(f"      match: {f.match!r}  context: {f.context!r}")
+
+    lines.append(f"── summary: {hard} hard_fail, {warn} warn  ({elapsed_ms} ms) ──")
+    return "\n".join(lines) + "\n"
+
+
+def _format_json(findings: list[Finding], mode: str, input_path: str,
+                 source_path: str | None, hard: int, warn: int, elapsed_ms: int) -> str:
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "tool": "ru_lint",
+        "tool_version": __version__,
+        "mode": mode,
+        "input_path": input_path,
+        "source_path": source_path,
+        "summary": {
+            "hard_fail_count": hard,
+            "warn_count": warn,
+            "elapsed_ms": elapsed_ms,
+        },
+        "findings": [f.to_dict() for f in findings],
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--format", choices=("human", "json"), default="human",
+                        help="output format (default: human)")
+    common.add_argument("--strict", action="store_true",
+                        help="exit non-zero on WARN findings as well (default: only HARD_FAIL)")
+
+    parser = argparse.ArgumentParser(
+        prog="ru_lint",
+        description="ru_lint — deterministic regex linter for Russian text edited by ru-editor.",
+        parents=[common],
+    )
+    parser.add_argument("--version", action="version",
+                        version=f"ru_lint {__version__} (schema {SCHEMA_VERSION})")
+
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_check = sub.add_parser("check", help="absolute checks on edited file", parents=[common])
+    p_check.add_argument("edited", help="path to edited.md")
+
+    p_diff = sub.add_parser("diff", help="diff checks (orig vs edited)", parents=[common])
+    p_diff.add_argument("source", help="path to original")
+    p_diff.add_argument("edited", help="path to edited")
+
+    p_both = sub.add_parser("both", help="absolute + diff checks (default semantics)", parents=[common])
+    p_both.add_argument("source", help="path to original")
+    p_both.add_argument("edited", help="path to edited")
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    try:
+        if args.cmd == "check":
+            edited = _load_doc(args.edited)
+            source = None
+            run_mode = "check"
+            input_path = args.edited
+            source_path = None
+        elif args.cmd == "diff":
+            source = _load_doc(args.source)
+            edited = _load_doc(args.edited)
+            run_mode = "diff"
+            input_path = args.edited
+            source_path = args.source
+        elif args.cmd == "both":
+            source = _load_doc(args.source)
+            edited = _load_doc(args.edited)
+            run_mode = "both"
+            input_path = args.edited
+            source_path = args.source
+        else:
+            parser.error(f"unknown command: {args.cmd}")
+            return 2  # unreachable
+    except FileNotFoundError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    t0 = time.monotonic()
+    findings = run_checks(edited, source=source, mode=run_mode)
+    elapsed_ms = int((time.monotonic() - t0) * 1000)
+
+    hard = sum(1 for f in findings if f.severity == "HARD_FAIL")
+    warn = sum(1 for f in findings if f.severity == "WARN")
+
+    if args.format == "json":
+        out = _format_json(findings, run_mode, input_path, source_path, hard, warn, elapsed_ms)
+    else:
+        out = _format_human(findings, run_mode, hard, warn, elapsed_ms)
+    sys.stdout.write(out)
+
+    if hard > 0:
+        return 1
+    if args.strict and warn > 0:
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
