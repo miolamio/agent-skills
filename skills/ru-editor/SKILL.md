@@ -17,6 +17,48 @@ metadata:
 
 # Russian Text Editor (Редактор русского текста)
 
+## Factual Integrity
+
+Never invent specificity. When the source contains vague claims («качественный», «эффективный», «уникальный», «быстро», «с большим опытом»), choose one of these allowed responses:
+
+1. **Remove** the claim.
+2. **Weaken** it to a neutral statement.
+3. **Ask** for missing facts via editor note.
+4. **Restructure** to drop the empty evaluation.
+
+**Forbidden inventions:** numbers, dates, names, examples, metrics, sources, guarantees, calls to action.
+
+This rule overrides «add specificity» from informational style. Inforstyle says «replace evaluations with facts»; factual integrity says «only with facts you can point to in the source».
+
+See [references/factual-integrity.md](references/factual-integrity.md) for full discussion and examples.
+
+## Output Discipline
+
+The final edited text must NOT contain:
+
+- **Emoji** of any kind.
+- **Arrows** in Russian prose: `→`, `=>`, `->`, `⇒`. Use words instead: «заменить на», «состоит из», «после этого». Exception: code blocks, formulas, CLI output requested by the user.
+- **Straight quotes** `"..."` or `'...'` in Russian text outside code. Use «» for primary, „" for nested.
+- **Double hyphen** `--` instead of em dash `—`.
+
+Em dash is used **by grammatical or semantic function** (subject–predicate copula, definitions with intonation break, direct speech). It is NOT used to imitate punchy AI prose. If a dash separates two independent thoughts, use a period. If the pause is weak, use a comma. If the second part explains, use a colon.
+
+**Hard limit:** at most one em dash per paragraph.
+
+See [references/typography.md](references/typography.md) for full typography rules.
+
+## QA Gate
+
+Before returning edited text, verify:
+
+1. **No invented facts.** Every number, name, date, percentage in the output must trace to the source.
+2. **No protected spans changed.** Code, URLs, commands, file paths, API names, product names — unchanged.
+3. **No banned outputs.** No emoji, no arrows in prose, no straight quotes in Russian outside code, no `--`.
+4. **No surviving banned AI markers** in final text: «погружаемся», «погрузимся», «ландшафт» (in AI sense), «гобелен», «является свидетельством», «стоит отметить».
+5. **Structure preserved.** Headings, list items, paragraphs counted in vs out — no silent loss.
+
+In v2.3 these checks are manual self-checks during Step 2 (Self-Reflection). Phase 2 (v2.4) will introduce `scripts/ru_lint.py` for deterministic verification — when available, prefer the script over self-check.
+
 ## Important Rules
 
 - Never use emoji or emoticons anywhere.
@@ -40,44 +82,52 @@ Your edited text must read as if written by a thoughtful, experienced human auth
 
 ## Reference Files
 
-Before editing, load the relevant reference files:
+The skill loads references at different stages. Most are loaded on trigger to keep the always-loaded context small.
 
-| File | Contents | When to load |
-|------|----------|--------------|
-| [references/ai-markers-ru.md](references/ai-markers-ru.md) | **Critical:** Russian AI writing markers — ChatGPT-isms, structural patterns, tone markers, synonym clusters, pretentious word overuse, euphemism softening | Always load before editing |
-| [references/informational-style.md](references/informational-style.md) | **Critical:** Stop words, evaluations, euphemisms, unfounded claims, syntax rules, bureaucratese, action vs inaction, close synonyms, paragraph transitions, split constructions | Always load before editing |
-| [references/pretentious-words.md](references/pretentious-words.md) | **Critical:** 100+ pairs of «заумно → просто» replacements — complex borrowed words with simple Russian equivalents | Always load before editing |
-| [references/typography.md](references/typography.md) | Quotation marks, dashes, lists, numbers, dates, letter «ё» | Load before editing |
-| [references/editing-examples.md](references/editing-examples.md) | 11 before/after pairs organized by problem type (AI, bureaucratese, pretentious words, euphemisms, unfounded claims, close synonyms, weak subjects) | Load for complex edits or unfamiliar text types |
-| [references/tech-anglicisms.md](references/tech-anglicisms.md) | Calques, transliterated anglicisms, untranslated English, mixed-language compounds, unexplained jargon — with replacement tables and exception rules | Load when editing technical or educational text |
+**Always load** (before any editing):
+
+| File | Contents |
+|------|----------|
+| [references/factual-integrity.md](references/factual-integrity.md) | The most important rule: never invent specificity. Allowed responses, forbidden inventions, examples |
+| [references/ai-markers-ru.md](references/ai-markers-ru.md) | Russian AI writing markers — ChatGPT-isms, structural patterns, tone markers, synonym clusters |
+
+**Load on trigger:**
+
+| File | When to load |
+|------|--------------|
+| [references/typography.md](references/typography.md) | When dealing with quotes, dashes, lists, numbers, dates, letter «ё»; when typography violations are detected |
+| [references/informational-style.md](references/informational-style.md) | When applying informational style: stop words, evaluations, euphemisms, unfounded claims, syntax, bureaucratese, paragraph transitions |
+| [references/pretentious-words.md](references/pretentious-words.md) | When the text contains complex borrowed words that have simple Russian equivalents |
+| [references/tech-anglicisms.md](references/tech-anglicisms.md) | When editing technical or educational text with anglicisms, calques, or mixed-language compounds |
+| [references/editing-examples.md](references/editing-examples.md) | For complex edits or unfamiliar text types — 11 before/after pairs by problem type |
 
 ## Three-Step Workflow
 
 ### Step 1 — Edit (Редактура)
 
-Read the text as a whole first. Understand its purpose, audience, and register. Then pass through it applying these 12 operations:
+Read the text as a whole first. Understand its purpose, audience, and register. Then pass through it applying these 18 operations:
 
 1. **AI marker elimination** — remove ChatGPT-isms: «погружаться», «ландшафт», «гобелен», «свидетельство», «ключевой/поворотный момент», «является свидетельством», synonym cycling, rule-of-three constructions, inline-header lists with bold+colon (see `ai-markers-ru.md`).
 
 2. **Stop-word removal** — delete introductory trash («как известно», «стоит отметить», «более того»), hedging phrases, time parasites («на сегодняшний день», «в настоящее время»), filler (see `informational-style.md`).
 
-3. **Evaluation-to-fact replacement** — replace empty adjectives with specifics: «качественный» → facts about quality, «эффективный» → measurable results, «уникальный» → what makes it unique. If facts are unavailable, delete the evaluation entirely.
+3. **Evaluation-to-fact replacement** — replace empty adjectives with specifics: для «качественный» подобрать факты о качестве; для «эффективный» — измеримые результаты; для «уникальный» — что именно делает уникальным. If facts are unavailable, delete the evaluation entirely. **Important:** only with facts present in the source. Never invent — see `## Factual Integrity`.
 
-4. **De-nominalization** — convert verbal nouns to verbs: «осуществление поддержки» → «поддерживаем», «проведение анализа» → «проанализировали», «обеспечение выполнения» → «обеспечить».
+4. **De-nominalization** — convert verbal nouns to verbs: «осуществление поддержки» становится «поддерживаем»; «проведение анализа» — «проанализировали»; «обеспечение выполнения» — «обеспечить».
 
-5. **Active voice and strong actors** — rewrite passive constructions: «было принято решение» → «мы решили». Find the hidden actor and hidden action. Replace weak subjects (abstractions, nominalizations) with strong ones (people, teams, companies). Replace weak verbs (являться, находиться, обеспечивать, предполагать) with action verbs. Text should read like a movie, not a still life (see `informational-style.md` section 11).
+5. **Active voice and strong actors** — rewrite passive constructions: вместо «было принято решение» используем «мы решили». Find the hidden actor and hidden action. Replace weak subjects (abstractions, nominalizations) with strong ones (people, teams, companies). Replace weak verbs (являться, находиться, обеспечивать, предполагать) with action verbs. Text should read like a movie, not a still life (see `informational-style.md` section 11).
 
-6. **Pretentious word simplification** — replace complex borrowed words with simple Russian equivalents: «функционировать» → «работать», «трансформация» → «изменение», «имплементация» → «внедрение», «верификация» → «проверка». If 3+ pretentious words appear in one sentence, rewrite the whole sentence (see `pretentious-words.md`).
+6. **Pretentious word simplification** — replace complex borrowed words with simple Russian equivalents: «функционировать» становится «работать»; «трансформация» — «изменение»; «имплементация» — «внедрение»; «верификация» — «проверка». If 3+ pretentious words appear in one sentence, rewrite the whole sentence (see `pretentious-words.md`).
 
-7. **Euphemism removal** — replace soft hedging language with direct statements: «определённые сложности» → «серьёзные проблемы», «неоднозначный результат» → «провал», «делаем всё возможное» → what you're actually doing. Call things by their names (see `informational-style.md` section 6).
+7. **Euphemism removal** — replace soft hedging language with direct statements: «определённые сложности» становится «серьёзные проблемы»; «неоднозначный результат» — «провал»; вместо «делаем всё возможное» нужно сказать, что именно делаете. Call things by their names (see `informational-style.md` section 6).
 
-8. **Unfounded claim removal** — delete or replace vague generalizations presented as facts: «всё больше людей» → cite data or delete, «стремительно набирает популярность» → numbers or delete, «судя по всему» → state the source or delete. If a claim can be about anything and still sound plausible, it says nothing (see `informational-style.md` section 7).
+8. **Unfounded claim removal** — delete or replace vague generalizations presented as facts: для «всё больше людей» нужны цифры или удалить; для «стремительно набирает популярность» — числа или удалить; для «судя по всему» — назвать источник или удалить. If a claim can be about anything and still sound plausible, it says nothing (see `informational-style.md` section 7).
 
-9. **Close synonym cleanup** — when multiple near-synonyms are piled in a list, keep the strongest, delete the rest: «долгого, нудного и утомительного» → «нудного» or better yet a fact: «два месяца». Exception: keep synonyms that are genuinely different categories (see `informational-style.md` section 12).
+9. **Close synonym cleanup** — when multiple near-synonyms are piled in a list, keep the strongest, delete the rest: из «долгого, нудного и утомительного» оставить «нудного», или лучше — факт «два месяца» (если он есть в исходнике). Exception: keep synonyms that are genuinely different categories (see `informational-style.md` section 12).
 
 10. **Paragraph transition cleanup** — delete transitional words at the start of paragraphs: «Во-первых», «Далее», «Рассмотрим», «Таким образом», «В завершение». Start paragraphs with the main idea or an intriguing hook, not a meta-announcement (see `informational-style.md` section 13).
 
-11. **Syntax simplification** — break split constructions where parts are far apart: «не только [long], но и [long]» → two sentences. Simplify indirect speech: «сказал, что...» → direct form. Break long overloaded sentences, merge choppy fragments, vary sentence length for rhythm. One thought per sentence (see `informational-style.md` section 14).
+11. **Syntax simplification** — break split constructions where parts are far apart: «не только [long], но и [long]» разбить на два предложения. Simplify indirect speech: «сказал, что...» превращаем в прямую форму. Break long overloaded sentences, merge choppy fragments, vary sentence length for rhythm. One thought per sentence (see `informational-style.md` section 14).
 
 12. **Typography fixes** — correct quotes to «ёлочки», dashes to proper Unicode, list punctuation, letter «ё», number formatting (see `typography.md`).
 
@@ -87,11 +137,11 @@ Read the text as a whole first. Understand its purpose, audience, and register. 
 
 15. **Redundancy in obvious context** — remove restating what is already clear from context: «в коде проекта» when working in a code editor, «в русском языке» when the entire text is Russian.
 
-16. **Anglicism audit** — replace unnecessary English in Russian text. Four sub-types: (a) untranslated English terms with Russian equivalents: "edge cases" → «граничные случаи», "error boundaries" → «обработчики ошибок»; (b) transliterated anglicisms: «хелперы» → «вспомогательные функции», «дебаг» → «отладка»; (c) mixed-language compounds: «accessibility-лейблы» → «атрибуты доступности»; (d) calques — literal translations of English idioms: «высокорычажная техника» → «самая эффективная техника». Keep English for proper names, commands, code, and established terms without equivalents (see `tech-anglicisms.md`).
+16. **Anglicism audit** — replace unnecessary English in Russian text. Four sub-types: (a) untranslated English terms with Russian equivalents: "edge cases" заменяется на «граничные случаи»; "error boundaries" — на «обработчики ошибок»; (b) transliterated anglicisms: «хелперы» — «вспомогательные функции»; «дебаг» — «отладка»; (c) mixed-language compounds: «accessibility-лейблы» — «атрибуты доступности»; (d) calques — literal translations of English idioms: «высокорычажная техника» — «самая эффективная техника». Keep English for proper names, commands, code, and established terms without equivalents (see `tech-anglicisms.md`).
 
 17. **Jargon clarity** — if the target audience is broader than narrow specialists, add a brief parenthetical explanation at first use of opaque jargon: «тосты (всплывающие уведомления)», «спиннеры (индикаторы загрузки)». Do not explain universally known terms (API, Git, URL).
 
-18. **Cliché «от X до Y»** — the pattern «от [something] до [something]» used as a substitute for actual enumeration. Replace with a concrete list: «от мега-промпта до Trust-Then-Verify Gap» → «мега-промпт, Kitchen Sink, Fix Loop, Trust-Then-Verify Gap и другие».
+18. **Cliché «от X до Y»** — the pattern «от [something] до [something]» used as a substitute for actual enumeration. Replace with a concrete list: вместо «от мега-промпта до Trust-Then-Verify Gap» — «мега-промпт, Kitchen Sink, Fix Loop, Trust-Then-Verify Gap и другие».
 
 Do not aim for perfection at this stage. Aim for clean, natural, readable Russian.
 
