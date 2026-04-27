@@ -11,7 +11,7 @@ description: Edits AI-generated or poorly written Russian text into natural, idi
 license: MIT
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 2.2.0
+  version: 2.3.0
   category: editing
 ---
 
