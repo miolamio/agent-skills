@@ -327,7 +327,6 @@ def main(argv: list[str] | None = None) -> int:
             source_path = args.source
         else:
             parser.error(f"unknown command: {args.cmd}")
-            return 2  # unreachable
     except FileNotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
