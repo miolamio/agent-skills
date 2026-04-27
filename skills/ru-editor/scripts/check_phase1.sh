@@ -11,13 +11,25 @@ section() { echo; echo "── $1 ──"; }
 fail()    { echo "FAIL: $1"; failures=$((failures+1)); }
 pass()    { echo "PASS: $1"; }
 
-section "1. Arrow check (no →, =>, ⇒ in references or SKILL.md)"
-arrow_count=$(grep -rn -E '→|⇒|=>' SKILL.md references/ 2>/dev/null | wc -l | tr -d ' ')
+section "1. Arrow check (no →, =>, ⇒ in prose; code spans are exempt)"
+arrow_count=0
+arrow_locations=""
+for f in SKILL.md references/*.md; do
+  [ -f "$f" ] || continue
+  # Strip inline code spans (`...`) before checking — characters listed inside
+  # backticks are documentation about banned characters, not prose use.
+  hits=$(sed 's/`[^`]*`//g' "$f" | grep -cE '→|⇒|=>' || true)
+  arrow_count=$((arrow_count + hits))
+  if [ "$hits" -gt 0 ]; then
+    arrow_locations="$arrow_locations\n$f: $hits prose-arrow line(s)"
+  fi
+done
 if [ "$arrow_count" -eq 0 ]; then
-  pass "no arrows in references"
+  pass "no prose arrows in references or SKILL.md"
 else
-  grep -rn -E '→|⇒|=>' SKILL.md references/ 2>/dev/null | head -20
-  fail "found $arrow_count arrow occurrences (expected 0)"
+  echo -e "$arrow_locations"
+  sed 's/`[^`]*`//g' SKILL.md references/*.md 2>/dev/null | grep -nE '→|⇒|=>' | head -20
+  fail "found $arrow_count prose arrow occurrences (expected 0)"
 fi
 
 section "2. Emoji check (no emoji anywhere)"
