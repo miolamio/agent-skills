@@ -518,5 +518,150 @@ def _check_no_banned_markers(doc: Document, source: Document | None, ctx: dict) 
     return out
 
 
+# ---------------------------------------------------------------------------
+# Diff-mode checks (Task 9): edited vs source — Factual Integrity + structure
+# ---------------------------------------------------------------------------
+
+_PERCENTAGE_RE = re.compile(r"\d+(?:[.,]\d+)?\s*%")
+_MONEY_RE = re.compile(
+    r"\d+(?:[.,]\d+)?\s*"
+    r"(?:руб(?:\.|лей|ля)?|USD|EUR|долл(?:ара|аров)?|евро|тыс\.?|млн\.?|млрд\.?|₽|\$|€)"
+)
+
+
+def _diff_set(edited_set: set, source_set: set) -> set:
+    """Return items in edited but not in source."""
+    return edited_set - source_set
+
+
+@register(name="no_new_numeric_tokens", severity="HARD_FAIL", mode="diff",
+          description="Числовые токены, которых не было в исходнике (Factual Integrity).")
+def _check_no_new_numbers(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    new = _diff_set(doc.numeric_tokens, source.numeric_tokens)
+    out: list[Finding] = []
+    for tok in sorted(new):
+        idx = doc.prose.find(tok)
+        line, col = _line_col_of(doc.prose, idx) if idx >= 0 else (0, 0)
+        out.append(Finding(
+            check="no_new_numeric_tokens", severity="HARD_FAIL",
+            line=line, col=col, match=tok,
+            context=_context_around(doc.prose, idx) if idx >= 0 else "",
+            message=f"Число «{tok}» появилось в правке, но отсутствовало в исходнике. Запрещено выдумывать конкретику.",
+        ))
+    return out
+
+
+@register(name="no_new_percentages", severity="HARD_FAIL", mode="diff",
+          description="Проценты, которых не было в исходнике.")
+def _check_no_new_percentages(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src = set(_PERCENTAGE_RE.findall(source.prose))
+    edt = set(_PERCENTAGE_RE.findall(doc.prose))
+    new = edt - src
+    out: list[Finding] = []
+    for tok in sorted(new):
+        idx = doc.prose.find(tok)
+        line, col = _line_col_of(doc.prose, idx) if idx >= 0 else (0, 0)
+        out.append(Finding(
+            check="no_new_percentages", severity="HARD_FAIL",
+            line=line, col=col, match=tok,
+            context=_context_around(doc.prose, idx) if idx >= 0 else "",
+            message=f"Процент «{tok}» отсутствовал в исходнике.",
+        ))
+    return out
+
+
+@register(name="no_new_money_tokens", severity="HARD_FAIL", mode="diff",
+          description="Денежные выражения, которых не было в исходнике.")
+def _check_no_new_money(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src = set(_MONEY_RE.findall(source.prose))
+    edt = set(_MONEY_RE.findall(doc.prose))
+    new = edt - src
+    out: list[Finding] = []
+    for tok in sorted(new):
+        idx = doc.prose.find(tok)
+        line, col = _line_col_of(doc.prose, idx) if idx >= 0 else (0, 0)
+        out.append(Finding(
+            check="no_new_money_tokens", severity="HARD_FAIL",
+            line=line, col=col, match=tok,
+            context=_context_around(doc.prose, idx) if idx >= 0 else "",
+            message=f"Денежная сумма «{tok}» отсутствовала в исходнике.",
+        ))
+    return out
+
+
+@register(name="code_spans_preserved", severity="HARD_FAIL", mode="diff",
+          description="Inline code spans должны быть сохранены посимвольно.")
+def _check_code_spans_preserved(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src = set(source.code_spans)
+    edt = set(doc.code_spans)
+    lost = src - edt
+    out: list[Finding] = []
+    for span in sorted(lost):
+        out.append(Finding(
+            check="code_spans_preserved", severity="HARD_FAIL",
+            line=0, col=0, match=span,
+            context=span,
+            message=f"Code span «`{span}`» был в исходнике, но изменён или удалён.",
+        ))
+    return out
+
+
+@register(name="urls_preserved", severity="HARD_FAIL", mode="diff",
+          description="URLs из исходника должны быть сохранены.")
+def _check_urls_preserved(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src = set(source.urls)
+    edt = set(doc.urls)
+    lost = src - edt
+    out: list[Finding] = []
+    for url in sorted(lost):
+        out.append(Finding(
+            check="urls_preserved", severity="HARD_FAIL",
+            line=0, col=0, match=url,
+            context=url,
+            message=f"URL «{url}» был в исходнике, но изменён или удалён.",
+        ))
+    return out
+
+
+@register(name="headings_preserved", severity="HARD_FAIL", mode="diff",
+          description="Количество заголовков не должно уменьшаться.")
+def _check_headings_preserved(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src_count = len(source.headings)
+    edt_count = len(doc.headings)
+    if edt_count < src_count:
+        return [Finding(
+            check="headings_preserved", severity="HARD_FAIL",
+            line=0, col=0, match=str(src_count - edt_count),
+            context=f"source: {src_count}, edited: {edt_count}",
+            message=f"Потеряно {src_count - edt_count} заголов(ка/ков). Silent structural loss запрещён.",
+        )]
+    return []
+
+
+@register(name="list_items_count_within_tolerance", severity="WARN", mode="diff",
+          description="Количество list-items не должно отличаться больше чем на 30%.")
+def _check_list_items_tolerance(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src_n = len(source.list_items)
+    edt_n = len(doc.list_items)
+    if src_n == 0:
+        return []
+    drift = abs(edt_n - src_n) / src_n
+    if drift > 0.30:
+        return [Finding(
+            check="list_items_count_within_tolerance", severity="WARN",
+            line=0, col=0, match=f"{int(drift*100)}%",
+            context=f"source: {src_n} items, edited: {edt_n} items",
+            message=f"Дрейф числа list-items {int(drift*100)}% превышает порог 30%.",
+        )]
+    return []
+
+
 if __name__ == "__main__":
     sys.exit(main())
