@@ -97,7 +97,7 @@ Subjective adjectives without proof. The biggest quality killer in Russian text.
 
 ## 3. Syntax and Action (Синтаксис и действие)
 
-### Verbal nouns → verbs
+### Verbal nouns: verbs
 
 Russian loves verbs. Nominalizations kill the text.
 
@@ -114,7 +114,7 @@ Russian loves verbs. Nominalizations kill the text.
 
 **Detection rule:** If you see «осуществление / проведение / обеспечение / оказание + noun», a verb is hiding. Extract it.
 
-### Passive → active
+### Passive: active
 
 | Passive | Active |
 |---------|--------|
@@ -193,7 +193,7 @@ Euphemisms hide unpleasant truths behind soft words. AI text and corporate writi
 
 **Principle:** «Мямлить умеют все. А говорить честно, прямо и уважительно — единицы.»
 
-### Common euphemisms → direct replacements
+### Common euphemisms: direct replacements
 
 | Эвфемизм | Прямо |
 |----------|-------|
@@ -258,7 +258,7 @@ If you can replace the subject of a «брехня» sentence with anything and 
   - ...разведению кроликов
   - ...зарплатам чиновников
 
-All three work equally well → the sentence says nothing.
+All three work equally well, so the sentence says nothing.
 
 **Rule:** Every claim must be either backed by facts or deleted. «Мы делаем обувь» лучше, чем «Мы делаем обувь, которая стремительно набирает популярность среди требовательных покупателей».
 
@@ -291,7 +291,7 @@ If a sentence has more than one main idea, split it.
 Short sentences create rhythm. Long sentences carry complex ideas. Mix them. Monotonous length (all medium) is a strong AI marker.
 
 ### Break the template
-If every paragraph follows Introduction → Details → Summary, vary the structure. Start some paragraphs with a detail. End some abruptly. Let some flow into the next without a formal conclusion.
+If every paragraph follows Introduction, then Details, then Summary, vary the structure. Start some paragraphs with a detail. End some abruptly. Let some flow into the next without a formal conclusion.
 
 ---
 

@@ -44,8 +44,8 @@ AI forces ideas into groups of three to appear comprehensive:
 
 ### Synonym cycling (элегантная вариация)
 AI avoids repeating a word by cycling through synonyms, even when the same word is correct:
-- «продукт» → «решение» → «инструмент» → «платформа» (for the same thing)
-- «пользователь» → «клиент» → «человек» → «специалист» (for the same person)
+- «продукт», потом «решение», потом «инструмент», потом «платформа» — для одного и того же объекта
+- «пользователь», потом «клиент», потом «человек», потом «специалист» — для одного и того же человека
 
 **Fix:** Use one term consistently. Synonym variation for the same concept is a stronger AI marker than repetition.
 
@@ -74,8 +74,8 @@ AI structures information as bold-header-colon lists:
 
 ### Identical section structure
 Every section follows the same template:
-- Introduction sentence → 3 bullet points → summary sentence
-- Or: Definition → Advantages → Challenges → Future outlook
+- Introduction sentence, then 3 bullet points, then summary sentence
+- Or: Definition, then Advantages, then Challenges, then Future outlook
 
 **Fix:** Vary section structure. Some sections should be longer, some shorter. Some need lists, others work as prose.
 
@@ -218,7 +218,7 @@ If you see multiple words from this list in a single sentence, it needs a full r
 | верификация детализированной концепции | проверили, что идея работает |
 | систематизация и унификация процессов | упорядочили процессы |
 
-**Detection rule:** Read the sentence aloud. Would you say this to a colleague over coffee? If not, simplify. See `pretentious-words.md` for the complete «заумно → просто» table.
+**Detection rule:** Read the sentence aloud. Would you say this to a colleague over coffee? If not, simplify. See `pretentious-words.md` for the complete «заумно и просто» table.
 
 ---
 

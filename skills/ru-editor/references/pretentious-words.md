@@ -1,4 +1,4 @@
-# Pretentious Words → Simple Replacements (Заумное → Просто)
+# Pretentious Words: Simple Replacements (Заумные слова: простые замены)
 
 Based on the principles of «Пиши, сокращай».
 
