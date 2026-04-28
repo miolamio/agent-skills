@@ -86,6 +86,16 @@ class TestNoDoubleHyphen(unittest.TestCase):
         f = lint_check("Это — длинная пауза.", "no_double_hyphen")
         self.assertEqual(f, [])
 
+    def test_yaml_frontmatter_separator_no_fire(self):
+        text = "---\nname: foo\ndescription: bar\n---\n\nТекст документа."
+        f = lint_check(text, "no_double_hyphen")
+        self.assertEqual(f, [])
+
+    def test_markdown_table_separator_no_fire(self):
+        text = "| Колонка | Значение |\n|---|---|\n| A | 1 |"
+        f = lint_check(text, "no_double_hyphen")
+        self.assertEqual(f, [])
+
 
 class TestEmDashBudget(unittest.TestCase):
     def test_one_em_dash_per_paragraph_ok(self):

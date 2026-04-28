@@ -443,7 +443,7 @@ def _check_no_straight_quotes(doc: Document, source: Document | None, ctx: dict)
     return out
 
 
-_DOUBLE_HYPHEN_RE = re.compile(r"--")
+_DOUBLE_HYPHEN_RE = re.compile(r"(?<!-)--(?!-)")
 
 
 @register(name="no_double_hyphen", severity="HARD_FAIL", mode="absolute",
