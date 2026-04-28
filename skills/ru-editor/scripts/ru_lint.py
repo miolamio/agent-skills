@@ -88,25 +88,31 @@ class Document:
 
     @cached_property
     def code_blocks(self) -> list[str]:
-        return [m.group(0) for m in _CODE_BLOCK_RE.finditer(self.text)]
+        return [m.group(0) for m in _CODE_BLOCK_RE.finditer(self._without_ignored_regions)]
 
     @cached_property
     def code_spans(self) -> list[str]:
         # Strip surrounding backticks.
-        return [m.group(0)[1:-1] for m in _CODE_SPAN_RE.finditer(self.text)]
+        return [m.group(0)[1:-1] for m in _CODE_SPAN_RE.finditer(self._without_ignored_regions)]
 
     @cached_property
     def urls(self) -> list[str]:
         # Trailing sentence punctuation is stripped so "URL." doesn't capture the period.
-        return [m.group(0).rstrip(_URL_TRAILING_PUNCT) for m in _URL_RE.finditer(self.text)]
+        return [
+            m.group(0).rstrip(_URL_TRAILING_PUNCT)
+            for m in _URL_RE.finditer(self._without_ignored_regions)
+        ]
 
     @cached_property
     def headings(self) -> list[tuple[int, str]]:
-        return [(len(m.group(1)), m.group(2)) for m in _HEADING_RE.finditer(self.text)]
+        return [
+            (len(m.group(1)), m.group(2))
+            for m in _HEADING_RE.finditer(self._without_ignored_regions)
+        ]
 
     @cached_property
     def list_items(self) -> list[str]:
-        return [m.group(1) for m in _LIST_ITEM_RE.finditer(self.text)]
+        return [m.group(1) for m in _LIST_ITEM_RE.finditer(self._without_ignored_regions)]
 
     @cached_property
     def numeric_tokens(self) -> set[str]:
