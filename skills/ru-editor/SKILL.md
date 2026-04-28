@@ -52,15 +52,52 @@ See [references/typography.md](references/typography.md) for full typography rul
 
 ## QA Gate
 
-Before returning edited text, verify:
+Before returning edited text, run the deterministic linter:
+
+```bash
+python3 skills/ru-editor/scripts/ru_lint.py both <source-file> <edited-file>
+```
+
+If `Bash(python *)` is not authorized in the current session, fall back to the manual checklist below — but flag this in the output (`Editor note: linter not available; manual self-check applied`).
+
+The linter enforces:
+
+| Check | Severity | What it catches |
+|---|---|---|
+| Output Discipline | HARD_FAIL | emoji, arrows in prose, straight quotes, double hyphens |
+| Banned AI markers | HARD_FAIL | «погружаемся», «ландшафт», «является свидетельством», «стоит отметить», «гобелен» (full list in `references/banned-markers.toml`) |
+| Em dash budget | WARN | >1 em dash per block (paragraph or list-item) |
+| Factual Integrity (diff mode) | HARD_FAIL | numbers, percentages, money tokens new in edited but absent from source |
+| Structural preservation (diff mode) | HARD_FAIL | code spans modified, URLs lost, headings deleted |
+| Style WARNs | WARN | repeated openers, X-a-ne-Y pile-up, «это» in 3+ definitions, word repetition, synonym cluster drift, mixed list punctuation, length-ratio violation |
+
+**Exit code 0** means the edit is clean to return. **Exit code 1** means at least one HARD_FAIL — do NOT return the edit; either fix the issue or include findings as `Editor notes`.
+
+### Manual fallback checklist (if linter unavailable)
 
 1. **No invented facts.** Every number, name, date, percentage in the output must trace to the source.
 2. **No protected spans changed.** Code, URLs, commands, file paths, API names, product names — unchanged.
 3. **No banned outputs.** No emoji, no arrows in prose, no straight quotes in Russian outside code, no `--`.
-4. **No surviving banned AI markers** in final text: «погружаемся», «погрузимся», «ландшафт» (in AI sense), «гобелен», «является свидетельством», «стоит отметить».
+4. **No surviving banned AI markers** in final text. See `references/banned-markers.toml [hard_fail_markers]` for the authoritative list.
 5. **Structure preserved.** Headings, list items, paragraphs counted in vs out — no silent loss.
 
-In v2.3 these checks are manual self-checks during Step 2 (Self-Reflection). Phase 2 (v2.4) will introduce `scripts/ru_lint.py` for deterministic verification — when available, prefer the script over self-check.
+### Suppressing false positives
+
+If a passage legitimately contains a banned string (e.g., reference documentation showing what's banned), wrap it with HTML directive comments:
+
+```markdown
+<!-- ru-lint:ignore-line -->
+This single line is ignored.
+
+<!-- ru-lint:ignore-start -->
+Multiple lines
+ignored here.
+<!-- ru-lint:ignore-end -->
+```
+
+<!-- ru-lint:ignore-start -->
+
+These directives suppress all checks on the covered lines.
 
 ## Important Rules
 
