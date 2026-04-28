@@ -964,23 +964,29 @@ def _check_mixed_list_punctuation(doc: Document, source: Document | None, ctx: d
 
 
 @register(name="length_ratio_violation", severity="WARN", mode="diff",
-          description="Длина edited вне диапазона ±20% от source.")
+          description="Длина edited вне per-mode диапазона.")
 def _check_length_ratio(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
     assert source is not None
     src_len = len(source.prose)
     if src_len == 0:
         return []
     ratio = len(doc.prose) / src_len
-    profile = (ctx or {}).get("profile") or {}
-    lo = profile.get("length_ratio_min", 0.80)
-    hi = profile.get("length_ratio_max", 1.20)
+
+    profile = ctx.get("profile")
+    if profile is not None:
+        lo = float(profile["length_ratio_min"])
+        hi = float(profile["length_ratio_max"])
+    else:
+        # auto / Phase 2 globals
+        lo, hi = 0.80, 1.20
+
     if lo <= ratio <= hi:
         return []
     return [Finding(
         check="length_ratio_violation", severity="WARN",
         line=0, col=0,
         match=f"{ratio:.2f}",
-        context=f"source: {src_len} chars, edited: {len(doc.prose)} chars",
+        context=f"source: {src_len} chars, edited: {len(doc.prose)} chars, bounds: [{lo:.2f}, {hi:.2f}]",
         message=f"Length ratio {ratio:.2f} вне диапазона [{lo:.2f}, {hi:.2f}].",
     )]
 
