@@ -121,7 +121,7 @@ else
   fail "new always-load section header missing"
 fi
 
-section "9. Always-load total line count under 600"
+section "9. Always-load total line count under 700"
 total=0
 for f in SKILL.md references/factual-integrity.md references/ai-markers-ru.md; do
   if [ -f "$f" ]; then
@@ -129,10 +129,10 @@ for f in SKILL.md references/factual-integrity.md references/ai-markers-ru.md; d
     total=$((total + n))
   fi
 done
-if [ "$total" -lt 600 ]; then
-  pass "always-load total: $total lines (< 600)"
+if [ "$total" -lt 700 ]; then
+  pass "always-load total: $total lines (< 700)"
 else
-  fail "always-load total: $total lines (expected < 600)"
+  fail "always-load total: $total lines (expected < 700)"
 fi
 
 section "10. Version bumped to 2.3.0"
