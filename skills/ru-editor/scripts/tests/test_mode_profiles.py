@@ -1,4 +1,5 @@
 """Phase 3: mode-profiles.toml loader and schema validation."""
+import os
 import unittest
 from pathlib import Path
 import tempfile
@@ -49,6 +50,7 @@ class TestModeProfilesLoader(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as f:
             f.write(bad)
             path = f.name
+        self.addCleanup(os.unlink, path)
         with self.assertRaises(ru_lint.ConfigError) as cm:
             ru_lint._load_mode_profiles(path=path)
         self.assertIn("missing mode", str(cm.exception))
@@ -76,6 +78,7 @@ class TestModeProfilesLoader(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as f:
             f.write(bad)
             path = f.name
+        self.addCleanup(os.unlink, path)
         with self.assertRaises(ru_lint.ConfigError) as cm:
             ru_lint._load_mode_profiles(path=path)
         self.assertIn("schema_version", str(cm.exception))
@@ -84,6 +87,7 @@ class TestModeProfilesLoader(unittest.TestCase):
         with tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False) as f:
             f.write("not = valid = toml ===")
             path = f.name
+        self.addCleanup(os.unlink, path)
         with self.assertRaises(ru_lint.ConfigError):
             ru_lint._load_mode_profiles(path=path)
 

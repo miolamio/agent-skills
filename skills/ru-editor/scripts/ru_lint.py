@@ -360,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
 # Phase-1-locked absolute checks (Task 8)
 # ---------------------------------------------------------------------------
 
+import copy
 import tomllib
 
 _REFERENCES_DIR = Path(__file__).resolve().parent.parent / "references"
@@ -374,19 +375,20 @@ def _load_banned_markers() -> dict:
 _MODE_PROFILES_CACHE: dict | None = None
 _REQUIRED_MODES = ("proofread", "line_edit", "technical", "deep_rewrite")
 _REQUIRED_KEYS = ("length_ratio_min", "length_ratio_max", "list_items_tolerance")
+_MODE_PROFILES_PATH = Path(__file__).resolve().parent.parent / "references" / "mode-profiles.toml"
 
 
 def _load_mode_profiles(path: str | None = None) -> dict[str, dict]:
     """Load per-mode profiles from references/mode-profiles.toml.
 
     Cached on first call when path is None. Raises ConfigError on validation failure.
+    Returns a deep copy on every call so callers cannot mutate the cached singleton.
     """
     global _MODE_PROFILES_CACHE
     if path is None:
         if _MODE_PROFILES_CACHE is not None:
-            return _MODE_PROFILES_CACHE
-        default = Path(__file__).resolve().parent.parent / "references" / "mode-profiles.toml"
-        path = str(default)
+            return copy.deepcopy(_MODE_PROFILES_CACHE)
+        path = str(_MODE_PROFILES_PATH)
 
     p = Path(path)
     if not p.is_file():
@@ -402,6 +404,8 @@ def _load_mode_profiles(path: str | None = None) -> dict[str, dict]:
 
     modes = data.get("modes", {})
     profiles: dict[str, dict] = {}
+    # Note: keys beyond _REQUIRED_KEYS (e.g. `description`) are preserved verbatim
+    # in the returned profile dicts. Consumers should access bounds by explicit key.
     for name in _REQUIRED_MODES:
         if name not in modes:
             raise ConfigError(f"mode-profiles.toml: missing mode '{name}'")
@@ -411,9 +415,9 @@ def _load_mode_profiles(path: str | None = None) -> dict[str, dict]:
                 raise ConfigError(f"mode-profiles.toml: mode '{name}' missing key '{key}'")
         profiles[name] = dict(prof)
 
-    if path == str(Path(__file__).resolve().parent.parent / "references" / "mode-profiles.toml"):
+    if path == str(_MODE_PROFILES_PATH):
         _MODE_PROFILES_CACHE = profiles
-    return profiles
+    return copy.deepcopy(profiles)
 
 
 def _line_col_of(text: str, idx: int) -> tuple[int, int]:

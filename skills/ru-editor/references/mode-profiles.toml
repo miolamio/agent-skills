@@ -26,4 +26,4 @@ description = "Технический текст. Защита терминов,
 length_ratio_min = 0.0
 length_ratio_max = 99.0
 list_items_tolerance = 1.0
-description = "Перепиcать с нуля. Без length-ratio guard."
+description = "Переписать с нуля. Без length-ratio guard."
