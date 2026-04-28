@@ -1,0 +1,23 @@
+[meta]
+schema_version = "1.0"
+genre = "educational"
+intensity = "light"
+mode = "line_edit"
+
+[expected_findings]
+# Linter on source.md: hard_fail=1, warn=0.
+# Linter on expected.md: hard_fail=0, warn=0.
+
+hard_fail_min = 0
+hard_fail_max = 3
+warn_min = 0
+warn_max = 2
+
+# HARD_FAIL checks that fired on source.md (must be eliminated in expected.md):
+checks_must_fire = ["no_banned_markers"]
+
+# These must NOT fire on expected.md (acceptance gate ensures hard_fail=0):
+checks_must_not_fire_on_expected = ["no_banned_markers"]
+
+# Idempotency: lint(expected.md) must produce 0 HARD_FAIL.
+expected_clean_on_lint = true

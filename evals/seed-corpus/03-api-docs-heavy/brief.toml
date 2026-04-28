@@ -1,0 +1,23 @@
+[meta]
+schema_version = "1.0"
+genre = "technical"
+intensity = "heavy"
+mode = "line_edit"
+
+[expected_findings]
+# Linter on source.md: hard_fail=22, warn=6.
+# Linter on expected.md: hard_fail=0, warn=2.
+
+hard_fail_min = 20
+hard_fail_max = 24
+warn_min = 4
+warn_max = 8
+
+# HARD_FAIL checks that fired on source.md (must be eliminated in expected.md):
+checks_must_fire = ["no_arrows_in_prose", "no_banned_markers", "no_double_hyphen", "no_emoji", "no_straight_quotes"]
+
+# These must NOT fire on expected.md (acceptance gate ensures hard_fail=0):
+checks_must_not_fire_on_expected = ["no_arrows_in_prose", "no_banned_markers", "no_double_hyphen", "no_emoji", "no_straight_quotes"]
+
+# Idempotency: lint(expected.md) must produce 0 HARD_FAIL.
+expected_clean_on_lint = true
