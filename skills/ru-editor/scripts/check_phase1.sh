@@ -136,10 +136,17 @@ else
 fi
 
 section "10. Version bumped to 2.3.0"
-if grep -q "version: 2.3.0" SKILL.md; then
-  pass "SKILL.md frontmatter version is 2.3.0"
+ver=$(grep -E "^\s+version: [0-9]+\.[0-9]+\.[0-9]+" SKILL.md | head -1 | awk '{print $2}')
+if [ -n "$ver" ]; then
+  major=$(echo "$ver" | cut -d. -f1)
+  minor=$(echo "$ver" | cut -d. -f2)
+  if [ "$major" -ge 2 ] && { [ "$major" -gt 2 ] || [ "$minor" -ge 3 ]; }; then
+    pass "SKILL.md frontmatter version is $ver (≥ 2.3.0)"
+  else
+    fail "SKILL.md frontmatter version $ver is below Phase 1 minimum 2.3.0"
+  fi
 else
-  fail "SKILL.md frontmatter version is not 2.3.0"
+  fail "SKILL.md frontmatter version not parseable"
 fi
 
 section "11. CHANGELOG exists with v2.3.0 entry"

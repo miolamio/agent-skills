@@ -16,6 +16,14 @@ cd "$REPO_ROOT"
 failures=0
 section() { echo; echo "── $1 ──"; }
 
+section "0. Version is 2.4.0"
+if grep -q "version: 2.4.0" skills/ru-editor/SKILL.md; then
+  echo "PASS: version bumped to 2.4.0"
+else
+  echo "FAIL: version is not 2.4.0"
+  failures=$((failures + 1))
+fi
+
 section "1. Unit tests (unittest discover)"
 if python3 -m unittest discover skills/ru-editor/scripts/tests/ -v 2>&1 | tail -5; then
   echo "PASS: unit tests"
