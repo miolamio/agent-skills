@@ -96,5 +96,67 @@ class TestLengthRatioPerMode(unittest.TestCase):
         self.assertFalse(_has_length_violation(findings_auto))
 
 
+def _has_list_violation(findings) -> bool:
+    return any(f.check == "list_items_count_within_tolerance" for f in findings)
+
+
+def _list_md(n: int) -> str:
+    return "\n".join(f"- item {i}" for i in range(n)) + "\n"
+
+
+class TestListItemsTolerancePerMode(unittest.TestCase):
+    def test_proofread_within_5pct(self):
+        # 20 items → 19 items = 5% drift, exactly at the border (drift > 5% triggers; 5.0% does not)
+        src = Document(text=_list_md(20))
+        edt = Document(text=_list_md(19))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("proofread"))
+        self.assertFalse(_has_list_violation(findings))
+
+    def test_proofread_drift_exceeds_5pct(self):
+        # 20 → 18 = 10% drift, exceeds 5%
+        src = Document(text=_list_md(20))
+        edt = Document(text=_list_md(18))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("proofread"))
+        self.assertTrue(_has_list_violation(findings))
+
+    def test_line_edit_30pct_tolerance(self):
+        # 10 → 7 = 30% drift, at boundary
+        src = Document(text=_list_md(10))
+        edt = Document(text=_list_md(7))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("line_edit"))
+        self.assertFalse(_has_list_violation(findings))
+
+    def test_line_edit_drift_exceeds_30pct(self):
+        # 10 → 6 = 40%
+        src = Document(text=_list_md(10))
+        edt = Document(text=_list_md(6))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("line_edit"))
+        self.assertTrue(_has_list_violation(findings))
+
+    def test_technical_10pct_tolerance(self):
+        src = Document(text=_list_md(20))
+        edt = Document(text=_list_md(18))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("technical"))
+        self.assertFalse(_has_list_violation(findings))
+
+    def test_technical_drift_exceeds_10pct(self):
+        src = Document(text=_list_md(20))
+        edt = Document(text=_list_md(17))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("technical"))
+        self.assertTrue(_has_list_violation(findings))
+
+    def test_deep_rewrite_disables_list_check(self):
+        src = Document(text=_list_md(20))
+        edt = Document(text=_list_md(0))
+        findings = run_checks(edt, src, "diff", _ctx_for_mode("deep_rewrite"))
+        self.assertFalse(_has_list_violation(findings))
+
+    def test_auto_mode_uses_phase2_30pct(self):
+        src = Document(text=_list_md(10))
+        edt = Document(text=_list_md(7))  # 30% drift, allowed
+        findings = run_checks(edt, src, "diff", {"lint_mode": "auto", "profile": None})
+        self.assertFalse(_has_list_violation(findings))
+
+
 if __name__ == "__main__":
     unittest.main()

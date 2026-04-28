@@ -725,7 +725,7 @@ def _check_headings_preserved(doc: Document, source: Document | None, ctx: dict)
 
 
 @register(name="list_items_count_within_tolerance", severity="WARN", mode="diff",
-          description="Количество list-items не должно отличаться больше чем на 30%.")
+          description="Количество list-items не должно отличаться больше per-mode tolerance.")
 def _check_list_items_tolerance(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
     assert source is not None
     src_n = len(source.list_items)
@@ -733,12 +733,16 @@ def _check_list_items_tolerance(doc: Document, source: Document | None, ctx: dic
     if src_n == 0:
         return []
     drift = abs(edt_n - src_n) / src_n
-    if drift > 0.30:
+
+    profile = ctx.get("profile")
+    tolerance = float(profile["list_items_tolerance"]) if profile is not None else 0.30
+
+    if drift > tolerance:
         return [Finding(
             check="list_items_count_within_tolerance", severity="WARN",
             line=0, col=0, match=f"{int(drift*100)}%",
-            context=f"source: {src_n} items, edited: {edt_n} items",
-            message=f"Дрейф числа list-items {int(drift*100)}% превышает порог 30%.",
+            context=f"source: {src_n} items, edited: {edt_n} items, tolerance: {int(tolerance*100)}%",
+            message=f"Дрейф числа list-items {int(drift*100)}% превышает порог {int(tolerance*100)}%.",
         )]
     return []
 
