@@ -663,5 +663,353 @@ def _check_list_items_tolerance(doc: Document, source: Document | None, ctx: dic
     return []
 
 
+# ---------------------------------------------------------------------------
+# WARN checks (Task 10): heuristic patterns informed by grounding.
+# Group A: 7 plan-spec checks. Group B: 4 grounding-informed additions.
+# ---------------------------------------------------------------------------
+
+
+# Russian stopwords (extended). Repetition of these doesn't count for word_repetition check.
+_RU_STOPWORDS = frozenset({
+    "и", "в", "не", "на", "с", "по", "для", "что", "это", "к", "а", "но", "или",
+    "о", "от", "до", "из", "за", "у", "при", "об", "со", "под", "над", "без",
+    "же", "ли", "то", "так", "уже", "ещё", "ещё", "как", "когда", "где", "куда",
+    "всё", "все", "вся", "весь", "тот", "та", "те", "этот", "эта", "эти",
+    "мы", "вы", "они", "он", "она", "я", "ты",
+    "быть", "есть", "был", "была", "было", "были", "будет", "будут",
+    "наш", "ваш", "его", "её", "их", "свой", "сам", "сама",
+    "если", "чтобы", "потому", "поэтому", "также", "только", "лишь",
+    "the", "a", "an", "of", "to", "is", "in", "for", "and", "or", "but",
+})
+
+
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+
+
+def _split_sentences(text: str) -> list[str]:
+    return [s.strip() for s in _SENTENCE_SPLIT_RE.split(text) if s.strip()]
+
+
+def _first_word(sentence: str) -> str:
+    m = re.match(r"\s*([\w-]+)", sentence, flags=re.UNICODE)
+    return m.group(1).lower() if m else ""
+
+
+@register(name="repeated_sentence_openers", severity="WARN", mode="absolute",
+          description="3+ предложения подряд начинаются с одного слова.")
+def _check_repeated_openers(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    sentences = _split_sentences(doc.prose)
+    if len(sentences) < 3:
+        return []
+    streak_word = ""
+    streak_len = 0
+    for s in sentences:
+        w = _first_word(s)
+        if w and w == streak_word:
+            streak_len += 1
+        else:
+            streak_word = w
+            streak_len = 1
+        if streak_len == 3:
+            idx = doc.prose.find(s)
+            line, col = _line_col_of(doc.prose, idx) if idx >= 0 else (0, 0)
+            out.append(Finding(
+                check="repeated_sentence_openers", severity="WARN",
+                line=line, col=col, match=streak_word,
+                context=s[:80].replace("\n", " "),
+                message=f"3+ предложения подряд начинаются с «{streak_word}». Варьируйте начала.",
+            ))
+    return out
+
+
+_X_A_NE_Y_RE = re.compile(r"[^,.;!?]+,\s*а\s+не\s+[^,.;!?]+", re.UNICODE)
+
+
+@register(name="x_a_ne_y_pileup", severity="WARN", mode="absolute",
+          description="3+ конструкции «X, а не Y» в окне 500 символов.")
+def _check_x_a_ne_y_pileup(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    matches = list(_X_A_NE_Y_RE.finditer(doc.prose))
+    for i in range(len(matches) - 2):
+        if matches[i + 2].start() - matches[i].start() <= 500:
+            idx = matches[i].start()
+            line, col = _line_col_of(doc.prose, idx)
+            out.append(Finding(
+                check="x_a_ne_y_pileup", severity="WARN",
+                line=line, col=col, match="X, а не Y",
+                context=_context_around(doc.prose, idx, 60),
+                message="3+ конструкции «X, а не Y» подряд. Свернуть в простой список или варьировать.",
+            ))
+            break  # one finding is enough
+    return out
+
+
+_DEFINITION_ETO_RE = re.compile(r"\b\w+\s+—\s+это\s+", re.UNICODE)
+
+
+@register(name="eto_in_definitions", severity="WARN", mode="absolute",
+          description="3+ предложения в проксимити используют «X — это Y».")
+def _check_eto_definitions(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    matches = list(_DEFINITION_ETO_RE.finditer(doc.prose))
+    out: list[Finding] = []
+    for i in range(len(matches) - 2):
+        if matches[i + 2].start() - matches[i].start() <= 500:
+            idx = matches[i].start()
+            line, col = _line_col_of(doc.prose, idx)
+            out.append(Finding(
+                check="eto_in_definitions", severity="WARN",
+                line=line, col=col, match="X — это Y",
+                context=_context_around(doc.prose, idx, 60),
+                message="3+ определения через «это» в проксимити. Варьируйте структуру.",
+            ))
+            break
+    return out
+
+
+def _normalize_word(w: str) -> str:
+    """Lowercase + strip Russian/Latin grammatical endings (crude stem)."""
+    w = w.lower()
+    # Crude: trim 1–3 trailing chars to fold case/number variants.
+    # Better: would need pymorphy2, but no deps allowed.
+    return w[:max(4, len(w) - 2)]
+
+
+@register(name="word_repetition_in_sentence", severity="WARN", mode="absolute",
+          description="Не-стоп-слово повторяется 3+ раз в одном предложении.")
+def _check_word_repetition(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for s in _split_sentences(doc.prose):
+        words = re.findall(r"[\w-]+", s, flags=re.UNICODE)
+        counts: dict[str, int] = {}
+        for w in words:
+            wl = w.lower()
+            if wl in _RU_STOPWORDS or len(wl) < 4:
+                continue
+            stem = _normalize_word(w)
+            counts[stem] = counts.get(stem, 0) + 1
+        flagged = [(stem, c) for stem, c in counts.items() if c >= 3]
+        if flagged:
+            stem, c = flagged[0]
+            idx = doc.prose.find(s)
+            line, col = _line_col_of(doc.prose, idx) if idx >= 0 else (0, 0)
+            out.append(Finding(
+                check="word_repetition_in_sentence", severity="WARN",
+                line=line, col=col, match=stem,
+                context=s[:80].replace("\n", " "),
+                message=f"«{stem}*» встречается {c} раз в одном предложении. Варьируйте.",
+            ))
+    return out
+
+
+@register(name="synonym_cluster_drift", severity="WARN", mode="absolute",
+          description="3+ члена одного синонимического кластера в окне 500 символов.")
+def _check_synonym_cluster_drift(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text_lower = doc.prose.lower()
+    clusters = _load_banned_markers().get("synonym_clusters", {})
+    for name, words in clusters.items():
+        # Find all positions of all words in the cluster (case-insensitive).
+        positions: list[tuple[int, str]] = []
+        for w in words:
+            wl = w.lower()
+            start = 0
+            while True:
+                idx = text_lower.find(wl, start)
+                if idx < 0:
+                    break
+                # Word boundary check: surrounding chars not letters.
+                before = text_lower[idx - 1] if idx > 0 else " "
+                after = text_lower[idx + len(wl)] if idx + len(wl) < len(text_lower) else " "
+                if not (before.isalpha() or after.isalpha()):
+                    positions.append((idx, w))
+                start = idx + len(wl)
+        positions.sort()
+        # Sliding window of 500 chars: if 3+ DIFFERENT cluster members appear, flag once.
+        for i in range(len(positions) - 2):
+            window = positions[i:]
+            seen_words = set()
+            for pos, word in window:
+                if pos - positions[i][0] > 500:
+                    break
+                seen_words.add(word.lower())
+            if len(seen_words) >= 3:
+                idx, word = positions[i]
+                line, col = _line_col_of(doc.prose, idx)
+                out.append(Finding(
+                    check="synonym_cluster_drift", severity="WARN",
+                    line=line, col=col, match=name,
+                    context=", ".join(sorted(seen_words)),
+                    message=f"Кластер «{name}»: {len(seen_words)} синонимов в проксимити. Не циклируйте близкие слова.",
+                ))
+                break  # one finding per cluster
+    return out
+
+
+_LIST_BLOCK_RE = re.compile(
+    r"(?:^[ \t]*(?:[-*+]|\d+\.)[ \t]+.+(?:\n|$))+",
+    re.MULTILINE,
+)
+
+
+@register(name="mixed_list_punctuation", severity="WARN", mode="absolute",
+          description="Элементы одного списка имеют разную терминальную пунктуацию.")
+def _check_mixed_list_punctuation(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for block_match in _LIST_BLOCK_RE.finditer(doc.prose):
+        block = block_match.group(0)
+        items = [line for line in block.splitlines() if line.strip()]
+        if len(items) < 2:
+            continue
+        endings: set[str] = set()
+        for item in items:
+            stripped = item.rstrip()
+            if not stripped:
+                continue
+            last = stripped[-1]
+            if last in ".;,:":
+                endings.add(last)
+            else:
+                endings.add("none")
+        if len(endings) > 1:
+            idx = block_match.start()
+            line, col = _line_col_of(doc.prose, idx)
+            out.append(Finding(
+                check="mixed_list_punctuation", severity="WARN",
+                line=line, col=col, match="list",
+                context=", ".join(sorted(endings)),
+                message=f"Список имеет смешанные окончания строк: {sorted(endings)}.",
+            ))
+    return out
+
+
+@register(name="length_ratio_violation", severity="WARN", mode="diff",
+          description="Длина edited вне диапазона ±20% от source.")
+def _check_length_ratio(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    assert source is not None
+    src_len = len(source.prose)
+    if src_len == 0:
+        return []
+    ratio = len(doc.prose) / src_len
+    if 0.80 <= ratio <= 1.20:
+        return []
+    return [Finding(
+        check="length_ratio_violation", severity="WARN",
+        line=0, col=0,
+        match=f"{ratio:.2f}",
+        context=f"source: {src_len} chars, edited: {len(doc.prose)} chars",
+        message=f"Length ratio {ratio:.2f} вне диапазона [0.80, 1.20] (Phase 2 default ±20%).",
+    )]
+
+
+# ---------------------------------------------------------------------------
+# Group B — 4 grounding-informed WARN checks (not in plan baseline).
+# ---------------------------------------------------------------------------
+
+
+@register(name="no_warn_markers", severity="WARN", mode="absolute",
+          description="WARN-маркеры из banned-markers.toml [warn_markers].")
+def _check_no_warn_markers(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    markers = _load_banned_markers().get("warn_markers", {}).get("phrases", [])
+    text = doc.prose
+    text_lower = text.lower()
+    for phrase in markers:
+        p_lower = phrase.lower()
+        start = 0
+        while True:
+            idx = text_lower.find(p_lower, start)
+            if idx < 0:
+                break
+            line, col = _line_col_of(text, idx)
+            out.append(Finding(
+                check="no_warn_markers", severity="WARN",
+                line=line, col=col, match=phrase,
+                context=_context_around(text, idx),
+                message=f"WARN-маркер: «{phrase}». См. banned-markers.toml [warn_markers].",
+            ))
+            start = idx + len(p_lower)
+    return out
+
+
+# Line-leading bullet patterns. Use doc.raw because doc.prose strips list-item
+# prefixes that we want to inspect, and code blocks are stripped from prose
+# entirely; we need the as-authored markdown for structural list checks.
+_ARROW_BULLET_RE = re.compile(r"^[ \t]*[→⇒➜▶►][ \t]+", re.MULTILINE)
+
+
+@register(name="arrows_as_bullets", severity="WARN", mode="absolute",
+          description="Стрелка в начале строки списка — типичный AI-маркер форматирования.")
+def _check_arrows_as_bullets(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for m in _ARROW_BULLET_RE.finditer(doc.raw):
+        line, col = _line_col_of(doc.raw, m.start())
+        out.append(Finding(
+            check="arrows_as_bullets", severity="WARN",
+            line=line, col=col, match=m.group(0).strip(),
+            context=_context_around(doc.raw, m.start(), 60),
+            message="Стрелка как буллет в списке. Используйте «-», «*» или нумерацию.",
+        ))
+    return out
+
+
+_CHECKMARK_BULLET_RE = re.compile(r"^[ \t]*[✅✓⭐][ \t]+", re.MULTILINE)
+
+
+@register(name="checkmark_as_bullet", severity="WARN", mode="absolute",
+          description="Чекмарк/звезда как маркер списка — AI-форматный шаблон.")
+def _check_checkmark_as_bullet(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    matches = list(_CHECKMARK_BULLET_RE.finditer(doc.raw))
+    if matches:
+        m = matches[0]
+        line, col = _line_col_of(doc.raw, m.start())
+        out.append(Finding(
+            check="checkmark_as_bullet", severity="WARN",
+            line=line, col=col, match=m.group(0).strip(),
+            context=f"{len(matches)} такие(их) строки в документе",
+            message=f"Чекмарк/звезда как буллет ({len(matches)} строк). Используйте обычный маркер списка.",
+        ))
+    return out
+
+
+@register(name="intensifier_burst", severity="WARN", mode="absolute",
+          description="3+ интенсификатора в окне 200 символов — стилистический шум.")
+def _check_intensifier_burst(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    clusters = _load_banned_markers().get("synonym_clusters", {})
+    intensifiers = list(clusters.get("intensifier_drift", [])) + list(clusters.get("emphasis_drift", []))
+    if not intensifiers:
+        return []
+    text_lower = doc.prose.lower()
+    positions: list[tuple[int, str]] = []
+    for w in intensifiers:
+        wl = w.lower()
+        start = 0
+        while True:
+            idx = text_lower.find(wl, start)
+            if idx < 0:
+                break
+            before = text_lower[idx - 1] if idx > 0 else " "
+            after = text_lower[idx + len(wl)] if idx + len(wl) < len(text_lower) else " "
+            if not (before.isalpha() or after.isalpha()):
+                positions.append((idx, w))
+            start = idx + len(wl)
+    positions.sort()
+    out: list[Finding] = []
+    for i in range(len(positions) - 2):
+        if positions[i + 2][0] - positions[i][0] <= 200:
+            idx = positions[i][0]
+            line, col = _line_col_of(doc.prose, idx)
+            words_in_window = sorted({w for pos, w in positions[i:i + 3]})
+            out.append(Finding(
+                check="intensifier_burst", severity="WARN",
+                line=line, col=col, match="intensifier_burst",
+                context=", ".join(words_in_window),
+                message=f"3+ интенсификатора в окне 200 симв.: {words_in_window}. Уменьшите эмфазу.",
+            ))
+            break  # one finding per document
+    return out
+
+
 if __name__ == "__main__":
     sys.exit(main())
