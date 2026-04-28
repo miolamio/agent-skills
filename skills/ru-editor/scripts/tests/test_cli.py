@@ -53,7 +53,7 @@ class TestCliCheckMode(unittest.TestCase):
         f = self._write("clean.md", "# H\n\nText.\n")
         result = run_cli("check", str(f), "--format", "json")
         data = json.loads(result.stdout)
-        self.assertEqual(data["schema_version"], "1.0")
+        self.assertEqual(data["schema_version"], "1.1")
         self.assertEqual(data["tool"], "ru_lint")
         self.assertIn("tool_version", data)
         self.assertEqual(data["mode"], "check")

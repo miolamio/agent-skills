@@ -18,7 +18,7 @@ Exit code: 0 if no HARD_FAIL findings; 1 otherwise. Use --strict to also fail on
 """
 
 __version__ = "0.1.0"
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 
 class ConfigError(Exception):
@@ -222,6 +222,7 @@ def run_checks(
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -258,7 +259,8 @@ def _format_human(findings: list[Finding], mode: str, hard: int, warn: int, elap
 
 
 def _format_json(findings: list[Finding], mode: str, input_path: str,
-                 source_path: str | None, hard: int, warn: int, elapsed_ms: int) -> str:
+                 source_path: str | None, hard: int, warn: int, elapsed_ms: int,
+                 lint_mode: str = "auto") -> str:
     payload = {
         "schema_version": SCHEMA_VERSION,
         "tool": "ru_lint",
@@ -267,6 +269,7 @@ def _format_json(findings: list[Finding], mode: str, input_path: str,
         "input_path": input_path,
         "source_path": source_path,
         "summary": {
+            "mode": lint_mode,
             "hard_fail_count": hard,
             "warn_count": warn,
             "elapsed_ms": elapsed_ms,
@@ -282,6 +285,12 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="output format (default: human)")
     common.add_argument("--strict", action="store_true",
                         help="exit non-zero on WARN findings as well (default: only HARD_FAIL)")
+    common.add_argument(
+        "--mode",
+        default="auto",
+        help="editing mode for length/list-items bounds: auto (default) | "
+             "proofread | line_edit | technical | deep_rewrite",
+    )
 
     parser = argparse.ArgumentParser(
         prog="ru_lint",
@@ -336,15 +345,32 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
+    # Resolve mode profile (Phase 3)
+    lint_mode = args.mode  # "auto" | "proofread" | "line_edit" | "technical" | "deep_rewrite"
+    profile = None
+    if lint_mode != "auto":
+        try:
+            profiles_path = os.environ.get("RU_LINT_MODE_PROFILES")
+            profile = _load_mode_profiles(path=profiles_path)[lint_mode]
+        except KeyError:
+            print(f"ru_lint: unknown mode '{lint_mode}'", file=sys.stderr)
+            return 3
+        except ConfigError as e:
+            print(f"ru_lint: {e}", file=sys.stderr)
+            return 3
+
+    ctx = {"lint_mode": lint_mode, "profile": profile}
+
     t0 = time.monotonic()
-    findings = run_checks(edited, source=source, mode=run_mode)
+    findings = run_checks(edited, source=source, mode=run_mode, ctx=ctx)
     elapsed_ms = int((time.monotonic() - t0) * 1000)
 
     hard = sum(1 for f in findings if f.severity == "HARD_FAIL")
     warn = sum(1 for f in findings if f.severity == "WARN")
 
     if args.format == "json":
-        out = _format_json(findings, run_mode, input_path, source_path, hard, warn, elapsed_ms)
+        out = _format_json(findings, run_mode, input_path, source_path,
+                           hard, warn, elapsed_ms, lint_mode=lint_mode)
     else:
         out = _format_human(findings, run_mode, hard, warn, elapsed_ms)
     sys.stdout.write(out)
@@ -945,14 +971,17 @@ def _check_length_ratio(doc: Document, source: Document | None, ctx: dict) -> li
     if src_len == 0:
         return []
     ratio = len(doc.prose) / src_len
-    if 0.80 <= ratio <= 1.20:
+    profile = (ctx or {}).get("profile") or {}
+    lo = profile.get("length_ratio_min", 0.80)
+    hi = profile.get("length_ratio_max", 1.20)
+    if lo <= ratio <= hi:
         return []
     return [Finding(
         check="length_ratio_violation", severity="WARN",
         line=0, col=0,
         match=f"{ratio:.2f}",
         context=f"source: {src_len} chars, edited: {len(doc.prose)} chars",
-        message=f"Length ratio {ratio:.2f} вне диапазона [0.80, 1.20] (Phase 2 default ±20%).",
+        message=f"Length ratio {ratio:.2f} вне диапазона [{lo:.2f}, {hi:.2f}].",
     )]
 
 
