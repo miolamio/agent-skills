@@ -1,5 +1,7 @@
 # Editing Examples: Before and After (Примеры редактуры)
 
+<!-- ru-lint:ignore-start -->
+
 Each example shows AI-generated or poorly written Russian text, the edited version, and what was fixed.
 
 ---
@@ -318,3 +320,5 @@ Each example shows AI-generated or poorly written Russian text, the edited versi
 | Близкие синонимы | Долгого, нудного и утомительного | Нудного (или факт: «два месяца») |
 | Слабое подлежащее | Внедрение обеспечивает повышение | Мы автоматизировали — теперь 3 мин |
 | Переходное слово | Далее рассмотрим... | (удалить, начать с сути) |
+
+<!-- ru-lint:ignore-end -->

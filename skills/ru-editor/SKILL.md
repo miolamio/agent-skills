@@ -1,3 +1,4 @@
+<!-- ru-lint:ignore-start -->
 ---
 name: ru-editor
 description: Edits AI-generated or poorly written Russian text into natural, idiomatic
@@ -14,8 +15,10 @@ metadata:
   version: 2.3.0
   category: editing
 ---
+<!-- ru-lint:ignore-end -->
 
 # Russian Text Editor (Редактор русского текста)
+<!-- ru-lint:ignore-start -->
 
 ## Factual Integrity
 
@@ -251,3 +254,4 @@ This skill does NOT handle:
 - Creative writing or copywriting from scratch
 - Proofreading only (use a proofreader)
 - Academic text formatting (different rules apply)
+<!-- ru-lint:ignore-end -->

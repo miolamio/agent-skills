@@ -1,4 +1,5 @@
 # Factual Integrity
+<!-- ru-lint:ignore-start -->
 
 The most important rule of Russian editing: **never invent specificity**.
 
@@ -74,3 +75,4 @@ Output (any of three valid approaches):
 Specificity makes text persuasive. That's why models invent it — they're optimizing for «sounds good». But persuasive fiction is fraud. The editor's job is to make a text **as good as the facts allow**, not better than them. If the facts are weak, the honest output is a weak text plus a note saying «here's what's missing».
 
 A weak honest text is recoverable: the author adds facts, the editor revises. An invented confident text is unrecoverable: the lie is now in the document, and nobody knows it's a lie.
+<!-- ru-lint:ignore-end -->

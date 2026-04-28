@@ -1,5 +1,7 @@
 # Pretentious Words: Simple Replacements (Заумные слова: простые замены)
 
+<!-- ru-lint:ignore-start -->
+
 Based on the principles of «Пиши, сокращай».
 
 ---
@@ -111,3 +113,5 @@ If you see 3+ pretentious words in a single sentence, the sentence almost certai
 Read the sentence aloud. Would you say this to a colleague over coffee? If not, simplify.
 
 «Лучше просто об умном, чем сложно о ерунде»
+
+<!-- ru-lint:ignore-end -->

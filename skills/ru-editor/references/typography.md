@@ -1,5 +1,7 @@
 # Russian Typography Rules
 
+<!-- ru-lint:ignore-start -->
+
 ## Quotation Marks
 
 Primary: guillemets «ёлочки». Nested: German-style „лапки".
@@ -256,3 +258,5 @@ Use «ё» consistently throughout the text. This is the standard for profession
 | ее (when meaning "её") | её |
 | прием | приём |
 | елочки | ёлочки |
+
+<!-- ru-lint:ignore-end -->

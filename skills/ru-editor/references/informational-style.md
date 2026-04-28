@@ -1,5 +1,7 @@
 # Informational Style for Editors (Инфостиль для редактуры)
 
+<!-- ru-lint:ignore-start -->
+
 Based on the principles of «Пиши, сокращай» and adapted for editing existing Russian text (not translation).
 
 ---
@@ -445,3 +447,5 @@ Constructions with «сказал, что», «думаю, что», «хочу,
 ## Tool Reference
 
 **glvrd.ru** — online text analysis tool for informational style. Scores Russian text for informational style compliance. Useful as a final check, but don't optimize for the score — optimize for readability.
+
+<!-- ru-lint:ignore-end -->

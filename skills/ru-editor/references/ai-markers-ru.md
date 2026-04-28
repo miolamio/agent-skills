@@ -1,4 +1,5 @@
 # AI Writing Markers in Russian (Маркеры ИИ-текста)
+<!-- ru-lint:ignore-start -->
 
 Synthesized from AI cleanup patterns and Russian-specific anti-patterns. Use this checklist to detect and remove signs of AI-generated text.
 
@@ -258,3 +259,4 @@ Read the text and count. If you find 3+ of these, the text needs heavy editing:
 - [ ] Transitional words at every paragraph start (во-первых, далее, более того)
 - [ ] Unfounded claims (всё больше, в последнее время, стремительно)
 - [ ] «X, а не Y» pile-up — contrastive antithesis stacked 3+ times in close range
+<!-- ru-lint:ignore-end -->
