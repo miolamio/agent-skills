@@ -20,6 +20,11 @@ Exit code: 0 if no HARD_FAIL findings; 1 otherwise. Use --strict to also fail on
 __version__ = "0.1.0"
 SCHEMA_VERSION = "1.0"
 
+
+class ConfigError(Exception):
+    """Raised when configuration files (mode-profiles.toml, etc.) fail validation."""
+
+
 import re
 from dataclasses import dataclass
 from functools import cached_property
@@ -364,6 +369,51 @@ _BANNED_MARKERS_PATH = _REFERENCES_DIR / "banned-markers.toml"
 def _load_banned_markers() -> dict:
     with open(_BANNED_MARKERS_PATH, "rb") as fp:
         return tomllib.load(fp)
+
+
+_MODE_PROFILES_CACHE: dict | None = None
+_REQUIRED_MODES = ("proofread", "line_edit", "technical", "deep_rewrite")
+_REQUIRED_KEYS = ("length_ratio_min", "length_ratio_max", "list_items_tolerance")
+
+
+def _load_mode_profiles(path: str | None = None) -> dict[str, dict]:
+    """Load per-mode profiles from references/mode-profiles.toml.
+
+    Cached on first call when path is None. Raises ConfigError on validation failure.
+    """
+    global _MODE_PROFILES_CACHE
+    if path is None:
+        if _MODE_PROFILES_CACHE is not None:
+            return _MODE_PROFILES_CACHE
+        default = Path(__file__).resolve().parent.parent / "references" / "mode-profiles.toml"
+        path = str(default)
+
+    p = Path(path)
+    if not p.is_file():
+        raise ConfigError(f"mode-profiles.toml: file not found at {path}")
+    try:
+        data = tomllib.loads(p.read_text(encoding="utf-8"))
+    except tomllib.TOMLDecodeError as e:
+        raise ConfigError(f"mode-profiles.toml: malformed TOML — {e}") from e
+
+    sv = data.get("schema_version")
+    if sv != "1.0":
+        raise ConfigError(f"mode-profiles.toml: schema_version mismatch (got {sv!r}, expected '1.0')")
+
+    modes = data.get("modes", {})
+    profiles: dict[str, dict] = {}
+    for name in _REQUIRED_MODES:
+        if name not in modes:
+            raise ConfigError(f"mode-profiles.toml: missing mode '{name}'")
+        prof = modes[name]
+        for key in _REQUIRED_KEYS:
+            if key not in prof:
+                raise ConfigError(f"mode-profiles.toml: mode '{name}' missing key '{key}'")
+        profiles[name] = dict(prof)
+
+    if path == str(Path(__file__).resolve().parent.parent / "references" / "mode-profiles.toml"):
+        _MODE_PROFILES_CACHE = profiles
+    return profiles
 
 
 def _line_col_of(text: str, idx: int) -> tuple[int, int]:

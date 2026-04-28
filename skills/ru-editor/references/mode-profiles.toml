@@ -1,0 +1,29 @@
+# ru-editor mode profiles — schema 1.0
+# Per-mode bounds for length_ratio_violation and list_items_count_within_tolerance.
+# Used by ru_lint.py when invoked with --mode <name>.
+
+schema_version = "1.0"
+
+[modes.proofread]
+length_ratio_min = 0.95
+length_ratio_max = 1.05
+list_items_tolerance = 0.05
+description = "Грамматика, пунктуация, типографика. Смысл и структура — не трогать."
+
+[modes.line_edit]
+length_ratio_min = 0.70
+length_ratio_max = 1.15
+list_items_tolerance = 0.30
+description = "Ясность и естественность. Сохранение структуры. Default."
+
+[modes.technical]
+length_ratio_min = 0.90
+length_ratio_max = 1.10
+list_items_tolerance = 0.10
+description = "Технический текст. Защита терминов, кода, команд."
+
+[modes.deep_rewrite]
+length_ratio_min = 0.0
+length_ratio_max = 99.0
+list_items_tolerance = 1.0
+description = "Перепиcать с нуля. Без length-ratio guard."
