@@ -37,7 +37,7 @@ class TestModeProfilesLoader(unittest.TestCase):
         p = profiles["deep_rewrite"]
         self.assertEqual(p["length_ratio_min"], 0.0)
         self.assertGreaterEqual(p["length_ratio_max"], 99.0)
-        self.assertEqual(p["list_items_tolerance"], 1.0)
+        self.assertGreaterEqual(p["list_items_tolerance"], 99.0)
 
     def test_missing_mode_raises_config_error(self):
         bad = textwrap.dedent("""
