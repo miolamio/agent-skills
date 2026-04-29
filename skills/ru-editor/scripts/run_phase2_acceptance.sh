@@ -16,11 +16,19 @@ cd "$REPO_ROOT"
 failures=0
 section() { echo; echo "── $1 ──"; }
 
-section "0. Version is 2.4.0"
-if grep -q "version: 2.4.0" skills/ru-editor/SKILL.md; then
-  echo "PASS: version bumped to 2.4.0"
+section "0. Version is at least 2.4.0"
+ver=$(grep -E "^\s+version: [0-9]+\.[0-9]+\.[0-9]+" skills/ru-editor/SKILL.md | head -1 | awk '{print $2}')
+if [ -n "$ver" ]; then
+  major=$(echo "$ver" | cut -d. -f1)
+  minor=$(echo "$ver" | cut -d. -f2)
+  if [ "$major" -ge 2 ] && { [ "$major" -gt 2 ] || [ "$minor" -ge 4 ]; }; then
+    echo "PASS: SKILL.md frontmatter version is $ver (≥ 2.4.0)"
+  else
+    echo "FAIL: version $ver is below 2.4.0"
+    failures=$((failures + 1))
+  fi
 else
-  echo "FAIL: version is not 2.4.0"
+  echo "FAIL: could not parse version from SKILL.md"
   failures=$((failures + 1))
 fi
 

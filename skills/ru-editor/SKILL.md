@@ -136,7 +136,7 @@ These directives suppress all checks on the covered lines.
 3. **Conflict resolution.**
    - Explicit always wins over auto-detect.
    - In auto-detect ties: `deep_rewrite` > `technical` > `proofread` > `line_edit`.
-   - When phrases from two modes both fire (e.g. «технически вычитай»), pick by primary verb (the imperative governing the request: «вычитай» → proofread).
+   - When phrases from two modes both fire (e.g. «технически вычитай»), pick by primary verb (the imperative governing the request: `«вычитай» → proofread`).
 
 4. **Default.** If no trigger fires, mode is `line_edit`. Echo `(auto-detected)`.
 

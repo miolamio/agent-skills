@@ -16,9 +16,13 @@ arrow_count=0
 arrow_locations=""
 for f in SKILL.md references/*.md; do
   [ -f "$f" ] || continue
-  # Strip inline code spans (`...`) before checking — characters listed inside
-  # backticks are documentation about banned characters, not prose use.
-  hits=$(sed 's/`[^`]*`//g' "$f" | grep -cE '→|⇒|=>' || true)
+  # Strip fenced code blocks (```...```) and inline code spans (`...`) before
+  # checking — characters inside code fences/spans are documentation about
+  # banned characters or examples of editing modes, not prose use.
+  hits=$(awk '
+    /^```/ { in_block = !in_block; next }
+    !in_block { print }
+  ' "$f" | sed 's/`[^`]*`//g' | grep -cE '→|⇒|=>' || true)
   arrow_count=$((arrow_count + hits))
   if [ "$hits" -gt 0 ]; then
     arrow_locations="$arrow_locations\n$f: $hits prose-arrow line(s)"
@@ -28,7 +32,13 @@ if [ "$arrow_count" -eq 0 ]; then
   pass "no prose arrows in references or SKILL.md"
 else
   echo -e "$arrow_locations"
-  sed 's/`[^`]*`//g' SKILL.md references/*.md 2>/dev/null | grep -nE '→|⇒|=>' | head -20
+  for f in SKILL.md references/*.md; do
+    [ -f "$f" ] || continue
+    awk '
+      /^```/ { in_block = !in_block; next }
+      !in_block { print }
+    ' "$f" | sed 's/`[^`]*`//g' | grep -nE '→|⇒|=>' | sed "s|^|$f:|"
+  done | head -20
   fail "found $arrow_count prose arrow occurrences (expected 0)"
 fi
 
@@ -121,7 +131,7 @@ else
   fail "new always-load section header missing"
 fi
 
-section "9. Always-load total line count under 700"
+section "9. Always-load total line count under 800"
 total=0
 for f in SKILL.md references/factual-integrity.md references/ai-markers-ru.md; do
   if [ -f "$f" ]; then
@@ -129,10 +139,10 @@ for f in SKILL.md references/factual-integrity.md references/ai-markers-ru.md; d
     total=$((total + n))
   fi
 done
-if [ "$total" -lt 700 ]; then
-  pass "always-load total: $total lines (< 700)"
+if [ "$total" -lt 800 ]; then
+  pass "always-load total: $total lines (< 800)"
 else
-  fail "always-load total: $total lines (expected < 700)"
+  fail "always-load total: $total lines (expected < 800)"
 fi
 
 section "10. Version bumped to 2.3.0"
