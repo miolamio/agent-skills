@@ -56,6 +56,12 @@ if [[ -f skills/ru-editor/scripts/run_phase2_acceptance.sh ]]; then
     "bash skills/ru-editor/scripts/run_phase2_acceptance.sh"
 fi
 
+# Phase 3 — modes + tools tightening (added incrementally)
+if [[ -f skills/ru-editor/scripts/run_phase3_acceptance.sh ]]; then
+  run_phase 3 "Modes + tools tightening (v2.5.0)" \
+    "bash skills/ru-editor/scripts/run_phase3_acceptance.sh"
+fi
+
 # Future phases — append run_phase calls here.
 
 echo
