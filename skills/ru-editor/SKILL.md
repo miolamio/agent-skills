@@ -2,17 +2,19 @@
 ---
 name: ru-editor
 description: Edits AI-generated or poorly written Russian text into natural, idiomatic
-  Russian following informational style. Use when user says "отредактируй",
-  "причеши текст", "сделай текст человечным", "убери ИИ-шность", "инфостиль",
-  "почисти текст", "перепиши по-человечески", "humanize Russian", "edit Russian text",
-  "fix AI text", or provides Russian text for editing and quality improvement.
-  Removes AI markers (ChatGPT-isms), applies informational style, fixes typography,
-  adds human voice. NOT for translation (use en-ru-translator-adv), English text
-  editing, or creative writing.
+  Russian following informational style. Picks one of four modes (proofread, line_edit,
+  technical, deep_rewrite) from request phrasing, or honors an explicit `Mode: <name>`
+  prefix. Use when user says "отредактируй", "причеши текст", "сделай текст человечным",
+  "убери ИИ-шность", "инфостиль", "почисти текст", "перепиши по-человечески",
+  "humanize Russian", "edit Russian text", "fix AI text", or provides Russian text
+  for editing and quality improvement. Removes AI markers (ChatGPT-isms), applies
+  informational style, fixes typography, adds human voice. NOT for translation
+  (use en-ru-translator-adv), English text editing, or creative writing.
+allowed-tools: Read, Bash(python3:*)
 license: MIT
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 2.4.0
+  version: 2.5.0
   category: editing
 ---
 <!-- ru-lint:ignore-end -->
@@ -98,6 +100,90 @@ ignored here.
 <!-- ru-lint:ignore-start -->
 
 These directives suppress all checks on the covered lines.
+
+## Editing Modes
+
+`ru-editor` operates in one of four modes. Each mode is a contract about how aggressively you edit and how much length drift is permitted. The QA Gate enforces the contract via per-mode bounds in `ru_lint.py`.
+
+### Mode taxonomy
+
+| Mode | Purpose | Length budget | List-items tolerance |
+|---|---|---|---|
+| `proofread` | Grammar, punctuation, typography only. Do not touch meaning, structure, or word choice beyond corrections. | 0.95–1.05 (±5%) | ±5% |
+| `line_edit` (default) | Clarity, naturalness, AI-marker removal. Structure preserved; meaning preserved; aggressive cleanup of puffery, padding, and AI-isms. | 0.70–1.15 | ±30% |
+| `technical` | Technical text. Protect terms, code spans, commands, paths, identifiers. Light-touch outside protected fragments. | 0.90–1.10 (±10%) | ±10% |
+| `deep_rewrite` | Rewrite from scratch. Length and list-tolerance disabled. Absolute HARD_FAIL checks (emoji, arrows, factual integrity, banned markers) still enforced. | disabled | disabled |
+
+### Mode detection
+
+1. **Explicit override.** If the user's first line matches `/^Mode:\s*(\w+)/i`, capture the name.
+   - If the name is `proofread`, `line_edit`, `technical`, or `deep_rewrite` — use it. Echo `(explicit)`.
+   - If the name is unknown — ignore the prefix, fall through to auto-detect, and echo `(default; unknown mode '<name>' ignored)`.
+
+2. **Auto-detect by trigger phrases:**
+   - **`deep_rewrite`** — «перепиши с нуля», «полностью переделай», «deep rewrite».
+   - **`technical`** — «технически отредактируй», «technical edit», «техническая правка», OR the document contains ≥1 fenced code block / inline code spans cover ≥5% of body characters.
+   - **`proofread`** — «вычитай», «proofread», «исправь ошибки», «исправь опечатки», «грамматика».
+   - **`line_edit`** — «отредактируй», «причеши», «улучши», «убери ИИ-шность», «инфостиль», «убери воду», «почисти текст», «humanize».
+
+3. **Conflict resolution.**
+   - Explicit always wins over auto-detect.
+   - In auto-detect ties: `deep_rewrite` > `technical` > `proofread` > `line_edit`.
+   - When phrases from two modes both fire (e.g. «технически вычитай»), pick by primary verb (the imperative governing the request: «вычитай» → proofread).
+
+4. **Default.** If no trigger fires, mode is `line_edit`. Echo `(auto-detected)`.
+
+5. **Ambiguous.** If signals conflict and no clear primary verb resolves it, default to `line_edit`. Echo `(default; ambiguous request)`. Do not block — just continue.
+
+### Echo format
+
+The first line of skill output is mandatory and uses one of these exact formats:
+
+```
+Mode: line_edit (auto-detected)
+Mode: technical (explicit)
+Mode: proofread (auto-detected)
+Mode: line_edit (default; unknown mode 'aggressive' ignored)
+Mode: line_edit (default; ambiguous request)
+```
+
+A blank line follows. Then the edited text.
+
+### Examples
+
+**Example 1 — auto-detect line_edit (default):**
+
+```
+User: «Отредактируй это: <текст>»
+→ no Mode: prefix, trigger «отредактируй» → line_edit
+→ Output:
+   Mode: line_edit (auto-detected)
+
+   <edited text>
+```
+
+**Example 2 — explicit technical:**
+
+```
+User: «Mode: technical
+       <текст с CLI-командами>»
+→ first line matches; valid mode → technical (explicit)
+→ Output:
+   Mode: technical (explicit)
+
+   <edited text>
+```
+
+**Example 3 — conflict resolved by primary verb:**
+
+```
+User: «Технически вычитай <текст>»
+→ both technical and proofread fire; primary verb «вычитай» → proofread
+→ Output:
+   Mode: proofread (auto-detected)
+
+   <edited text>
+```
 
 ## Important Rules
 
