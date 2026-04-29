@@ -3,6 +3,7 @@ schema_version = "1.0"
 genre = "internal"
 intensity = "heavy"
 mode = "line_edit"
+expected_mode = "deep_rewrite"
 
 [expected_findings]
 # Linter on source.md: hard_fail=17, warn=7.

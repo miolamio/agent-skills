@@ -3,6 +3,7 @@ schema_version = "1.0"
 genre = "internal"
 intensity = "light"
 mode = "line_edit"
+expected_mode = "proofread"
 
 [expected_findings]
 # Edge case: Idempotency — source.md is already clean. expected.md is byte-identical; linter produces 0 findings on both.

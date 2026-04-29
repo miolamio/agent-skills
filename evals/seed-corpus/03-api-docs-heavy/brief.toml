@@ -3,6 +3,7 @@ schema_version = "1.0"
 genre = "technical"
 intensity = "heavy"
 mode = "line_edit"
+expected_mode = "technical"
 
 [expected_findings]
 # Linter on source.md: hard_fail=22, warn=6.
