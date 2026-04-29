@@ -4,6 +4,37 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.5.0] — 2026-04-29
+
+Phase 3 of v3.0.0 overhaul: editing modes + tools tightening.
+
+### Added
+
+- `references/mode-profiles.toml` — schema 1.0, four modes (`proofread`, `line_edit`, `technical`, `deep_rewrite`) with per-mode `length_ratio_min`/`length_ratio_max`/`list_items_tolerance`.
+- `--mode {auto,proofread,line_edit,technical,deep_rewrite}` flag in `ru_lint.py`. Default `auto` reproduces Phase 2 globals (0.80–1.20 / ±30%). When a named mode is specified, `length_ratio_violation` and `list_items_count_within_tolerance` consult the profile.
+- `## Editing Modes` section in `SKILL.md` with mode taxonomy, hybrid detection algorithm (auto + explicit `Mode: <name>` prefix), echo format, and examples.
+- Mandatory first-line echo in skill output: `Mode: <name> (<auto-detected|explicit|default; ...>)`.
+- New unit tests: `test_mode_profiles.py`, `test_modes_per_mode_bounds.py`, `test_ignore_symmetry.py`, `test_cli_mode_flag.py` (~25 new tests).
+- `scripts/run_phase3_acceptance.sh` — Phase 3 acceptance gate (unit tests + seed-corpus mode-aware eval + own-files regression + perf budget).
+- `expected_mode` field in all 20 `evals/seed-corpus/*/brief.toml` files.
+
+### Changed
+
+- `Document` structural extraction (`urls`, `code_spans`, `code_blocks`, `headings`, `list_items`) now reads from `_without_ignored_regions`, making `<!-- ru-lint:ignore-* -->` directives uniformly respected on both sides of diff-mode checks. Closes Phase 2 backlog #5.
+- `SKILL.md` frontmatter: `allowed-tools: Read, Bash(python3:*)` added (skill is restricted to file reads and Python invocations). `version: 2.4.0 → 2.5.0`. Description mentions mode selection.
+- `SKILL.md` `## QA Gate`: linter invocation now passes `--mode <detected>`. Documented exit code 3 (config error → manual fallback).
+- `SKILL.md` `## Output Format`: first line is `Mode: <name> (...)`.
+- `SKILL.md` `## Three-Step Workflow`: per-mode aggressiveness preamble.
+- JSON output schema bumped from `1.0` to `1.1` (additive: new `summary.mode` field with selected lint mode).
+
+### Notes
+
+- `context: fork` and other Claude-Code-specific isolation primitives remain deferred to Phase 4.
+- D4 `sentence_length_p95`, D6 `cliché_density_per_100_words`, D7 `anglicism_density` — still deferred to Phase 5 (need golden corpus for threshold calibration).
+- Acceptance metrics: detection accuracy ≥ 85%, length/list violations < 5%, 0 HARD_FAIL on own files, < 100ms per 5K char.
+
+---
+
 ## [2.4.0] — 2026-04-28
 
 Phase 2 of v3.0.0 overhaul: deterministic regex linter + seed corpus. SKILL.md `## QA Gate` now references the linter as authoritative.
