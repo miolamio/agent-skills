@@ -57,8 +57,15 @@ See [references/typography.md](references/typography.md) for full typography rul
 Before returning edited text, run the deterministic linter:
 
 ```bash
-python3 skills/ru-editor/scripts/ru_lint.py both <source-file> <edited-file>
+python3 ~/.claude/skills/ru-editor/scripts/ru_lint.py both <source.md> <edited.md> --mode <detected_mode>
 ```
+
+**Exit codes:**
+
+- `0` — no findings (clean).
+- `1` — at least one HARD_FAIL.
+- `2` — only WARN, but `--strict` was passed.
+- `3` — configuration error (`mode-profiles.toml` missing/malformed, unknown `--mode`). Fall through to manual fallback and warn the user that the linter could not run.
 
 If `Bash(python *)` is not authorized in the current session, fall back to the manual checklist below — but flag this in the output (`Editor note: linter not available; manual self-check applied`).
 
@@ -229,6 +236,13 @@ The skill loads references at different stages. Most are loaded on trigger to ke
 
 ## Three-Step Workflow
 
+The three steps below apply in every mode. Mode determines aggressiveness:
+
+- **Proofread** — Step 1 only fixes typography/grammar/punctuation. Steps 2 and 3 verify nothing else changed.
+- **Line Edit (default)** — Steps 1–3 as written below.
+- **Technical** — Step 1 protects code spans, commands, paths, and technical terms; treats them as immutable. Otherwise Steps 1–3 as written.
+- **Deep Rewrite** — Step 1 may restructure freely; length and list-tolerance are disabled in QA Gate. Absolute HARD_FAIL checks still apply.
+
 ### Step 1 — Edit (Редактура)
 
 Read the text as a whole first. Understand its purpose, audience, and register. Then pass through it applying these 18 operations:
@@ -352,6 +366,14 @@ Detect text type and adjust your approach:
 - **Internal communications** — kill euphemisms first. The reader needs to understand the actual situation. «У нас проблема» better than «Наблюдаются определённые сложности».
 
 ## Output Format
+
+The first line of every output is the mode echo (see `## Editing Modes`):
+
+```
+Mode: <name> (<auto-detected|explicit|default; ...>)
+```
+
+A blank line follows, then the edited text.
 
 Return only the edited text without comments or explanations, unless the user asks to see the full workflow.
 
