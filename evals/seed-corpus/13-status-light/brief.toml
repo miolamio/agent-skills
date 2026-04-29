@@ -3,7 +3,7 @@ schema_version = "1.0"
 genre = "internal"
 intensity = "light"
 mode = "line_edit"
-expected_mode = "proofread"
+expected_mode = "line_edit"
 
 [expected_findings]
 # Linter on source.md: hard_fail=1, warn=1.
