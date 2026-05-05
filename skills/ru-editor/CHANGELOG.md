@@ -4,6 +4,31 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.9.0] — 2026-05-05
+
+Phase 2H — false-positive cleanup grounded in the v2.8.0 quality audit.
+
+### Fixed
+
+- `repeated_sentence_openers` no longer false-positives on dense lists. `_first_word` now strips a leading list-bullet marker (`-`, `*`, `+`, `N.`) before extracting the opener. Previously every `- item.` was reported as starting with `-`, firing on any 3+ list items in a row. Closed ~20 WARN false-positives across seed-corpus expected.md and 2 in found-samples edited.md.
+- `_NUMERIC_RE` now captures grouped thousands («10 000», «10 000» (NBSP), «10,000», «1 234,56»). Combined with new `_canonicalize_number`, all four typographic variants collapse to the same canonical token so diff-mode no longer raises false HARD_FAIL when source uses English typography («10,000») and edited uses Russian («10 000»). Closed sample 14's diff-mode HARD_FAIL.
+- `bold_inline_header_in_list` now skips single Latin product/brand names («**StudyAI**», «**UseGPT**», «**Web2App**», «**ChatGPT-4**»). Cyrillic bold headers and multi-word Latin still fire. Closed 2 WARN false-positives in found-samples sample 01 (Russian-neuroNet listicle).
+
+### Changed
+
+- Total unit tests: 197 → 210 (+9 thousands tokenization, +3 list-bullet handling, +4 product-name whitelist, −2 obsolete).
+- All 13 found-samples edited.md are now `hard=0 warn=0` under `check` mode (was 3 files with WARN-noise in v2.8.0).
+- Sample 14's `both`-mode diff is now `hard=0 warn=0` (was `hard=2 warn=1`).
+
+### Invariants preserved
+
+- All 210 unit tests pass.
+- All 4 master phases (1, 2, 3, 2c) PASS.
+- 0 HARD_FAIL on every seed-corpus expected.md and every found-samples edited.md.
+- All Phase 2G regression-locks (`hedging_intro`, `sweeping_generalization`, `bold_in_prose_with_epithet`, the 14 new TOML markers) still fire on the matching sources.
+
+---
+
 ## [2.8.0] — 2026-05-05
 
 Phase 2G — closing the soft-AI-Slop gap from found-samples 09, 11, 12, 13.

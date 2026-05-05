@@ -40,6 +40,24 @@ class TestRepeatedSentenceOpeners(unittest.TestCase):
         f = lint_check(text, "repeated_sentence_openers")
         self.assertEqual(f, [])
 
+    def test_list_bullet_dash_not_an_opener(self):
+        # Phase 2H: bullets «-» / «*» / «+» are stripped before extracting opener.
+        # Otherwise dense lists fire on every 3+ items.
+        text = "- Первый пункт.\n- Второй пункт.\n- Третий пункт.\n"
+        f = lint_check(text, "repeated_sentence_openers")
+        self.assertEqual(f, [])
+
+    def test_numbered_list_marker_not_an_opener(self):
+        text = "1. Первый.\n2. Второй.\n3. Третий.\n"
+        f = lint_check(text, "repeated_sentence_openers")
+        self.assertEqual(f, [])
+
+    def test_repeated_word_in_list_items_still_warns(self):
+        # If actual first word after the bullet repeats — we DO want to warn.
+        text = "- Используйте API. - Используйте кэш. - Используйте webhook."
+        f = lint_check(text, "repeated_sentence_openers")
+        self.assertEqual(len(f), 1)
+
 
 class TestXANeYPileup(unittest.TestCase):
     def test_three_in_proximity_warns(self):
@@ -267,6 +285,28 @@ class TestBoldInlineHeaderInList(unittest.TestCase):
         text = "Это **жирный** текст в обычном абзаце.\n"
         f = lint_check(text, "bold_inline_header_in_list")
         self.assertEqual(f, [])
+
+    def test_latin_product_name_whitelisted(self):
+        # Phase 2H: «- **StudyAI** — описание» — product-name listing, not AI-Slop.
+        text = "- **StudyAI** — российский сервис\n- **UseGPT** — платформа\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(f, [])
+
+    def test_camelcase_with_digits_whitelisted(self):
+        text = "- **Web2App** — новая механика\n- **ChatGPT-4** — модель\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(f, [])
+
+    def test_cyrillic_bold_still_fires(self):
+        # Кириллический bold-заголовок — AI-маркдаун-шаблон, fires.
+        text = "- **Скорость** — всё быстро\n- **Простота** — всё понятно\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(len(f), 2)
+
+    def test_multiword_latin_still_fires(self):
+        text = "- **Easy Setup**: всё просто\n- **Fast API**: быстро\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(len(f), 2)
 
 
 class TestFillerParagraphOpener(unittest.TestCase):

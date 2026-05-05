@@ -64,6 +64,37 @@ class TestDocumentNumeric(unittest.TestCase):
         doc = Document(text="Параметр `--port=8080` это про настройку.")
         self.assertEqual(doc.numeric_tokens, set())
 
+    def test_numeric_tokens_thousands_space(self):
+        # «10 000» (Russian thousands separator) → canonical «10000».
+        doc = Document(text="В таблице более 10 000 строк.")
+        self.assertEqual(doc.numeric_tokens, {"10000"})
+
+    def test_numeric_tokens_thousands_comma(self):
+        # «10,000» (English thousands) → canonical «10000».
+        doc = Document(text="The table has more than 10,000 rows.")
+        self.assertEqual(doc.numeric_tokens, {"10000"})
+
+    def test_numeric_tokens_decimal_comma(self):
+        # «3,14» (Russian decimal) → canonical «3.14».
+        doc = Document(text="Число пи примерно равно 3,14.")
+        self.assertEqual(doc.numeric_tokens, {"3.14"})
+
+    def test_numeric_tokens_thousands_and_decimal(self):
+        # «1 234,56» → «1234.56»; «1,000,000» → «1000000».
+        doc = Document(text="Сумма 1 234,56 рублей; население 1,000,000.")
+        self.assertEqual(doc.numeric_tokens, {"1234.56", "1000000"})
+
+    def test_numeric_tokens_thousands_typography_diff_normalized(self):
+        # Source uses «10,000»; edited uses «10 000» — same token after canon.
+        src = Document(text="Более 10,000 строк.")
+        edt = Document(text="Более 10 000 строк.")
+        self.assertEqual(src.numeric_tokens, edt.numeric_tokens)
+
+    def test_numeric_tokens_short_decimal_not_grouped(self):
+        # «10,5» — Russian decimal (only 1-2 digits after comma) → «10.5», not stripped.
+        doc = Document(text="Размер 10,5 МБ.")
+        self.assertEqual(doc.numeric_tokens, {"10.5"})
+
 
 class TestDocumentDirectives(unittest.TestCase):
     def setUp(self):

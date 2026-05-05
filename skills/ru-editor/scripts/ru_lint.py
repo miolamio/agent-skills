@@ -36,8 +36,29 @@ _CODE_SPAN_RE = re.compile(r"`[^`\n]+`")
 _URL_RE = re.compile(r"https?://[^\s)\]]+")
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$", re.MULTILINE)
 _LIST_ITEM_RE = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+(.+?)\s*$", re.MULTILINE)
-_NUMERIC_RE = re.compile(r"\d+(?:[.,]\d+)?")
+_NUMERIC_RE = re.compile(r"\d+(?:[  ,]\d{3})*(?:[.,]\d+)?")
 _DIRECTIVE_LINE = re.compile(r"<!--\s*ru-lint:ignore-line\s*-->")
+
+
+_THOUSANDS_COMMA_RE = re.compile(r",(?=\d{3}(?!\d))")
+_NUMBER_INTERNAL_WS_RE = re.compile(r"[  ]")
+
+
+def _canonicalize_number(token: str) -> str:
+    """Canonical form of a numeric literal for diff equivalence.
+
+    Strips thousands separators (space, NBSP, comma-then-3-digits) and
+    converts a Russian decimal comma to a dot. After canonicalization,
+    values equal in semantics hash identically:
+
+        «10,000» / «10 000» / «10 000» / «10000» → «10000»
+        «3,14» / «3.14»                                → «3.14»
+        «1 234,56»                                     → «1234.56»
+        «1,000,000»                                    → «1000000»
+    """
+    token = _NUMBER_INTERNAL_WS_RE.sub("", token)
+    token = _THOUSANDS_COMMA_RE.sub("", token)
+    return token.replace(",", ".")
 _DIRECTIVE_START = re.compile(r"<!--\s*ru-lint:ignore-start\s*-->")
 _DIRECTIVE_END = re.compile(r"<!--\s*ru-lint:ignore-end\s*-->")
 
@@ -116,8 +137,10 @@ class Document:
 
     @cached_property
     def numeric_tokens(self) -> set[str]:
-        # Numbers from prose only (not code).
-        return set(_NUMERIC_RE.findall(self.prose))
+        # Numbers from prose only (not code). Canonicalized so «10,000»,
+        # «10 000», «10 000», «10000» all collapse to «10000» — typography
+        # normalization between source and edited must not produce new tokens.
+        return {_canonicalize_number(t) for t in _NUMERIC_RE.findall(self.prose)}
 
 
 Severity = Literal["HARD_FAIL", "WARN"]
@@ -780,7 +803,17 @@ def _split_sentences(text: str) -> list[str]:
     return [s.strip() for s in _SENTENCE_SPLIT_RE.split(text) if s.strip()]
 
 
+_LIST_BULLET_PREFIX_RE = re.compile(r"^\s*(?:[-*+]|\d+\.)\s+")
+
+
 def _first_word(sentence: str) -> str:
+    """Lowercase first word, ignoring any leading list-bullet marker.
+
+    Without bullet stripping, sentences from list items («- Первый пункт.»)
+    return «-» as the opener, which then false-positives `repeated_sentence_openers`
+    on dense lists.
+    """
+    sentence = _LIST_BULLET_PREFIX_RE.sub("", sentence)
     m = re.match(r"\s*([\w-]+)", sentence, flags=re.UNICODE)
     return m.group(1).lower() if m else ""
 
@@ -1158,16 +1191,36 @@ def _check_parallel_kak_tak_i(doc: Document, source: Document | None, ctx: dict)
 
 
 _BOLD_INLINE_HEADER_IN_LIST_RE = re.compile(
-    r"^[ \t]*[-*+][ \t]+\*\*[^*\n]{1,60}\*\*[ \t]*[:—]",
+    r"^[ \t]*[-*+][ \t]+\*\*([^*\n]{1,60})\*\*[ \t]*[:—]",
     re.MULTILINE | re.UNICODE,
 )
+
+
+def _is_latin_product_name(content: str) -> bool:
+    """True if `content` looks like a single Latin product/brand name.
+
+    Examples (skip): «StudyAI», «UseGPT», «ChatGPT-4», «Notion», «Web2App».
+    Examples (don't skip): «Скорость», «API REST», «Возможности», «New Feature».
+    """
+    s = content.strip()
+    if not s or " " in s:
+        return False
+    if not (s[0].isascii() and s[0].isupper()):
+        return False
+    return all(c.isascii() and (c.isalnum() or c in "-_") for c in s)
 
 
 @register(name="bold_inline_header_in_list", severity="WARN", mode="absolute",
           description="Bold-инлайн-заголовок в элементе списка — AI-маркдаун-шаблон.")
 def _check_bold_inline_header_in_list(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    """Phase 2H: whitelist single Latin product/brand names («**StudyAI** — …»)
+    so legit product listings don't trigger this AI-Slop heuristic. Cyrillic or
+    multi-word bold headers still fire.
+    """
     out: list[Finding] = []
     for m in _BOLD_INLINE_HEADER_IN_LIST_RE.finditer(doc.raw):
+        if _is_latin_product_name(m.group(1)):
+            continue
         line, col = _line_col_of(doc.raw, m.start())
         out.append(Finding(
             check="bold_inline_header_in_list", severity="WARN",
