@@ -1,6 +1,6 @@
 # ru-editor Found Samples
 
-Реальные русскоязычные тексты, собранные из открытых источников, с явными признаками AI-генерации (AI-Slop). В отличие от `evals/seed-corpus/` (рукотворный фикстур-корпус с полным acceptance-контрактом), эта папка содержит **пары `source.md` + `edited.md`** для отладки линтера на материале «из дикой природы».
+Реальные русскоязычные тексты, собранные из открытых источников, с явными признаками AI-генерации (AI-Slop). В отличие от `evals/seed-corpus/` (рукотворный фикстур-корпус), эта папка содержит **тройки `source.md` + `edited.md` + `brief.toml`** для отладки линтера на материале «из дикой природы».
 
 ## Что внутри
 
@@ -9,18 +9,40 @@ evals/found-samples/
   NN-<slug>/
     source.md     # verbatim русский текст с указанной страницы
     edited.md     # отредактированная версия (smoke-test эталон)
+    brief.toml    # acceptance-контракт (см. ниже)
 ```
 
 Каждый `source.md`/`edited.md` начинается с метаданных в HTML-комментарии, обёрнутых в `<!-- ru-lint:ignore-start -->`/`<!-- ru-lint:ignore-end -->`, чтобы маркеры в полях метаданных не фолсили линтер. Сама verbatim-часть `source.md` НЕ обёрнута — линтер должен на ней срабатывать.
 
-Пара `source.md` ↔ `edited.md` создавалась как smoke-test для ru-editor (commit 8212b95): запуск `ru_lint both source.md edited.md` должен проходить без HARD_FAIL. Это упрощённый аналог `expected.md` из seed-corpus, но без `brief.toml`-метаданных.
+## brief.toml schema
 
-## Поля метаданных
+Зеркалит `seed-corpus/*/brief.toml` (schema_version 1.0):
+
+```toml
+[meta]
+schema_version = "1.0"
+genre = "marketing-landing"        # см. genre-таблицу ниже
+intensity = "medium"                # light|medium|heavy
+mode = "line_edit"                  # editing mode for smoke-test
+expected_mode = "line_edit"
+source_url = "https://..."          # specific to found-samples
+
+[expected_findings]
+hard_fail_min = 1
+hard_fail_max = 3
+warn_min = 1
+warn_max = 5
+checks_must_fire = ["no_banned_markers", "not_only_but_also"]
+checks_must_not_fire_on_edited = ["no_banned_markers", ...]
+expected_clean_on_lint = true       # 0 HARD_FAIL on edited.md (invariant)
+```
+
+## Поля метаданных в source.md
 
 | Поле | Что значит |
 |---|---|
 | `source` | URL страницы-источника |
-| `genre` | marketing-landing / seo-listicle / corporate-blog / educational / news / help-docs |
+| `genre` | seo-listicle / corporate-blog / seo-landing / marketing-landing / educational / news / help-docs / b2b-listicle / research-summary / educational-tutorial / marketing-case-study |
 | `collected` | Дата сбора (YYYY-MM-DD) |
 | `verified_via` | Метод подтверждения текста (WebFetch + URL) |
 | `markers_observed` | Маркеры, которые видны на странице — ground truth для линтера |
@@ -32,7 +54,7 @@ evals/found-samples/
 2. Верификация через WebFetch на каждый URL — извлекли verbatim-фрагменты непосредственно со страниц.
 3. Один батч от Perplexity оказался сфабрикован (галлюцинации с искусственно набитыми маркерами в одном абзаце) — выкинут.
 
-**Важный дисклеймер:** WebFetch проксирует через Haiku, который может слегка перефразировать. Для линтер-фикстур это приемлемо — главное, что AI-Slop-характер сохранён и набор маркеров реален. Для production-grade ground truth (golden corpus, Phase 5) нужен ручной copy-paste с открытой страницы.
+**Важный дисклеймер:** WebFetch проксирует через Haiku, который может слегка перефразировать. Для линтер-фикстур это приемлемо — главное, что AI-Slop-характер сохранён и набор маркеров реален. Для production-grade ground truth нужен ручной copy-paste с открытой страницы.
 
 ## Как использовать
 
@@ -42,60 +64,64 @@ evals/found-samples/
 python3 skills/ru-editor/scripts/ru_lint.py check evals/found-samples/01-vc-listicle-emoji/source.md
 ```
 
-Прогнать по всем:
+Прогнать acceptance-контракт по всем 13:
 
 ```bash
-for f in evals/found-samples/*/source.md; do
-  echo "=== $f ==="
-  python3 skills/ru-editor/scripts/ru_lint.py check "$f"
-done
+bash skills/ru-editor/scripts/run_phase2c_acceptance.sh
 ```
 
-Ожидаемое поведение: каждый файл должен дать ≥1 HARD_FAIL и/или несколько WARN. Если линтер ничего не нашёл на тексте, помеченном как AI-Slop, — это потенциальный false negative и повод доработать regex/правила.
+Ожидаемое поведение: каждый `source.md` фолит ≥0 HARD_FAIL в пределах `[hard_fail_min, hard_fail_max]`, а `edited.md` всегда чист (0 HARD_FAIL).
 
-## Baseline после Phase 2C (2026-04-28)
+## Baseline после Phase 2D-2F (2026-05-05)
 
-Phase 2C расширила линтер 12 phrase-маркерами в `banned-markers.toml` (2 HARD_FAIL, 10 WARN) и 5 regex-чеками: `not_only_but_also`, `parallel_kak_tak_i`, `bold_inline_header_in_list`, `filler_paragraph_opener`, `unsourced_percentage` (все WARN).
+Phase 2D-2F: 31 зарегистрированный чек, +5 фраз WARN в `banned-markers.toml`, +5 regex-чеков, +1 структурный (`repeated_heading_template`), opinion-mode whitelist, A/B-эксперимент whitelist для `unsourced_percentage`.
 
-| # | Файл | HARD_FAIL | WARN | Что поймал |
-|---|---|---|---|---|
-| 01 | vc-listicle-emoji | 3 | 0 | `no_emoji` × 3 (💥, 📌, 📌) |
-| 02 | habr-studyai-corp | 0 | 4 | warn-маркеры «настоящий прорыв», «также отметим», «стремительно растёт», `not_only_but_also` |
-| 03 | sostav-press-release | 0 | 2 | «принципиально отличается», «первый представитель своего класса» |
-| 04 | lpmotor-seo-landing | 0 | 1 | «широкий спектр задач» (+ потенциально `unsourced_percentage`, см. ниже) |
-| 05 | yagla-marketing-banners | 1 | 1 | HARD «вот тут на помощь приходят» + `not_only_but_also` |
-| 06 | skillbox-edu-img | 0 | 2 | «оживляют пиксели» (или близкое), `filler_paragraph_opener` («Кроме того») |
-| 07 | it-world-tech-news | 0 | 1 | `parallel_kak_tak_i` («как среди профессионалов, так и у…») |
-| 08 | gigachat-help-listicle | 0 | 0 | — структурный AI-шаблон, regex-ом не ловится |
+### Стратификация и fires (source.md)
 
-**Сравнение:** до Phase 2C было `hard=3, warn=0` (1 файл из 8 фолил). Стало `hard=4, warn=11` (7 из 8).
+| # | Жанр | Источник | HARD_FAIL | WARN | Что поймал |
+|---|---|---|---|---|---|
+| 01 | seo-listicle | vc.ru | 3 | 0 | `no_emoji` × 3 |
+| 02 | corporate-blog | habr.com | 0 | 4 | `no_warn_markers` × 4 |
+| 03 | corporate-blog (PR) | sostav.ru | 0 | 2 | «принципиально отличается», «первый представитель своего класса» |
+| 04 | seo-landing | lpmotor.ru | 0 | 1 | «широкий спектр задач» |
+| 05 | marketing-landing | yagla.ru | 1 | 2 | HARD «вот тут на помощь приходят» + `not_only_but_also` |
+| 06 | educational | skillbox.ru | 0 | 2 | «оживляют пиксели», `filler_paragraph_opener` |
+| 07 | news/listicle | it-world.ru | 0 | 2 | `parallel_kak_tak_i` + warn-marker |
+| 08 | help-docs | giga.chat | 0 | 3 | `repeated_heading_template` × 2 + `em_dash_budget` |
+| 09 | research-summary | ucaas.cnews.ru | 0 | 0 | — soft-AI-Slop, known gap |
+| 10 | b2b-listicle | vc.ru | 0 | 1 | `em_dash_budget` (плотные тире-bullet) |
+| 11 | educational-tutorial | skillbox.ru | 0 | 0 | — soft-AI-Slop, known gap |
+| 12 | corporate-blog | cossa.ru | 0 | 0 | — soft-AI-Slop, known gap |
+| 13 | marketing-case-study | sostav.ru | 0 | 0 | — цифры из A/B-эксперимента (whitelist) |
 
-## Известные пробелы
+**Сравнение:**
+- Стартовая Phase 2 (8 файлов): hard=3, warn=0. **1 из 8 файлов фолил.**
+- Phase 2D (8 файлов): hard=4, warn=14. **8 из 8 файлов фолят.**
+- Phase 2F (13 файлов): hard=4, warn=17. **9 из 13 файлов фолят.** Новые soft-AI-Slop сэмплы (4) — known gap для Phase 2G.
 
-- **Sample 08** — шаблонная структура «**Имя** — описание / ### Возможности / ### Недостатки» под каждой моделью. Это структурный AI-pattern, не лексический. Regex-ом не ловится; нужен structural-checker (анализ повторяющихся блоков заголовок-список-заголовок-список).
-- **Opinion-жанр** — `unsourced_percentage` фолит на риторических цифрах вроде «90% того, что показывают» в авторских колонках. Это формально WARN, не блокирует, но шум возможен. Mitigation на будущее: добавить `--mode=opinion` с whitelist для риторических процентов.
-- **Ласковые AI-маркеры**, не покрытые ни TOML, ни regex: «Да-да» (фейк-разговорный тон), «единая нейронная сеть» (redundant qualifier), «представляет собой связку из». Кандидаты на Phase 2D.
+## Известные пробелы — backlog Phase 2G
 
-## Стратификация по жанрам
+Образцы 09, 11, 12 содержат AI-маркеры, которые текущий линтер не видит. Все три попали в один общий класс — **soft-AI-Slop** (мягкие, но узнаваемые). Кандидаты на расширение линтера:
 
-| # | Жанр | Источник |
+| Класс | Примеры в корпусе | Идея чека |
 |---|---|---|
-| 01 | seo-listicle | vc.ru |
-| 02 | corporate-blog | habr.com (StudyAI) |
-| 03 | corporate-blog (PR) | sostav.ru |
-| 04 | seo-landing | lpmotor.ru |
-| 05 | marketing-landing | yagla.ru |
-| 06 | educational | skillbox.ru |
-| 07 | news/listicle | it-world.ru |
-| 08 | help-docs/educational | giga.chat |
+| Hedging-интро | «Вероятнее всего, это связано с…», «На самом деле», «Как правило» в начале абзаца | Расширить `filler_paragraph_opener` или новый `hedging_intro` |
+| Sweeping generalization | «применять их должны уметь все», «делает всё, что может понадобиться» | regex `(всё что может|всем нужно|должны .* все)` — WARN |
+| Evaluation без proof | «значительно упрощают», «качественных площадках», «стратегический канал» | Список оценочных слов в TOML + контекстный whitelist (если рядом число — пропустить) |
+| Corporate research stamps | «ключевые данные и инсайты», «показатель зрелости рынка» | TOML warn_markers |
+| Bold inline-headers без двоеточия | «**одним из ключевых перфоманс-каналов** проекта» | Расширить `bold_inline_header_in_list` на любые bold внутри предложения с эпитетом |
 
-Тематика всех образцов — обзоры русскоязычных нейросетей (актуальная SEO-ниша 2026 года). Для других тематик добавляйте новые подпапки с возрастающим NN.
+Sample 08 — шаблонная структура — закрыта в Phase 2D через `repeated_heading_template`.
+
+Opinion-жанр (sample 12-opinion-heavy в seed-corpus) — закрыт в Phase 2D через opinion-mode whitelist.
 
 ## Добавление нового образца
 
 1. Возьми следующий незанятый номер NN.
 2. Создай папку `NN-<short-slug>/`.
 3. Найди реальную страницу с AI-Slop-признаками. Скопируй verbatim-фрагмент 300-1000 символов.
-4. Запиши `source.md` по шаблону (см. существующие файлы).
-5. Прогони `ru_lint.py check` — должны быть находки. Зафиксируй их в `markers_observed`.
-6. Не редактируй текст. Если хочется добавить эталон — клади `expected.md` рядом по схеме seed-corpus.
+4. Запиши `source.md` по шаблону существующих файлов.
+5. Запиши `edited.md` — твоя чистая версия по правилам ru-editor.
+6. Прогони `ru_lint.py check source.md` — зафиксируй fires.
+7. Запиши `brief.toml` с budget и обязательными чеками.
+8. Прогони `bash skills/ru-editor/scripts/run_phase2c_acceptance.sh` — должно быть PASS.

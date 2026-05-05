@@ -326,6 +326,12 @@ class TestUnsourcedPercentage(unittest.TestCase):
         f = lint_check(text, "unsourced_percentage")
         self.assertEqual(f, [])
 
+    def test_ab_experiment_result_no_warn(self):
+        # Цифра из A/B-эксперимента — легитимный case-study, не fake stat.
+        text = "После A/B-эксперимента доход кампаний вырос на 26%."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
     def test_no_percentage_no_warn(self):
         text = "Большинство пользователей выбирают наш продукт."
         f = lint_check(text, "unsourced_percentage")

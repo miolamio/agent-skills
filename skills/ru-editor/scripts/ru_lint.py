@@ -1227,6 +1227,12 @@ _CITATION_MARKERS = (
     "статистик",
     "по словам",
     "по информации",
+    # A/B testing / measurement context — exact figures from the case study:
+    "эксперимент",
+    "a/b-эксперимент",
+    "a/b-тест",
+    "ab-тест",
+    "измерени",
     # Financial / pricing context — exact figures, not rhetorical claims:
     "скидка",
     "скидку",

@@ -4,6 +4,52 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.7.0] — 2026-05-05
+
+Phase 2D + 2E + 2F — closing remaining backlog after Phase 2C.
+
+### Added (Phase 2D — linter)
+
+- `repeated_heading_template` (WARN, absolute) — detects 2+ headings starting with marketing-template prefixes («Возможности и преимущества», «Недостатки», «Преимущества и недостатки», «Плюсы и минусы», «Ключевые особенности», «Особенности», «Применение», «Использование», «Характеристики», «Ключевые возможности», «Возможности»). Catches AI-listicle structural patterns.
+- Opinion-mode whitelist for `unsourced_percentage`. The check no longer fires when an opinion marker («считаю», «думаю», «мне кажется», «по-моему», «убеждён», «честно говоря», «на мой взгляд», «лично я», «если честно») is in the ±200 char window. Removes false positives on opinion-jоurnalism.
+- A/B-experiment whitelist for `unsourced_percentage`. The check skips percentages near «эксперимент», «a/b-тест», «измерени» — case-study figures from controlled experiments are not fake stats.
+- `references/banned-markers.toml`: 5 new WARN phrases — «да-да,», «представляет собой», «как известно», «в наше время», «на сегодняшний день».
+
+### Added (Phase 2E — acceptance)
+
+- `evals/found-samples/*/brief.toml` — schema-1.0 contract for all 8 (now 13) samples: genre, intensity, expected mode, hard/warn budgets, checks_must_fire, checks_must_not_fire_on_edited, expected_clean_on_lint.
+- `scripts/run_phase2c_acceptance.sh` — 5-section gate validating brief.toml schema, source-budget compliance, edited.md cleanliness (smoke-test invariant), must-fire and must-not-fire invariants.
+- `scripts/run_all_tests.sh` master-runner now wires Phase 2C into the regression pipeline. All 4 phases (1, 2, 3, 2c) green.
+
+### Added (Phase 2F — corpus expansion)
+
+- 5 new found-samples (09–13) covering genres outside the «нейросеть-обзор» niche:
+  - `09-cnews-hr-research` — corporate research summary (HR digitalization).
+  - `10-vc-b2b-hr-listicle` — B2B HR-tools listicle, conversational AI tone.
+  - `11-skillbox-excel-tutorial` — educational tutorial (Excel functions).
+  - `12-cossa-link-report` — corporate report (link-building industry).
+  - `13-sostav-rta-case-study` — marketing case study with real A/B-experiment metrics.
+- Sample 08 verbatim extended from 1 model to 2 (YandexGPT + Kandinsky) so `repeated_heading_template` hits its 2+ threshold.
+
+### Changed
+
+- Total registered checks: 29 → 31. Total unit tests: 166 → 176.
+- `evals/found-samples/README.md`: full rewrite reflecting 13-sample structure, brief.toml schema, baseline table, Phase 2G backlog (soft-AI-Slop classes).
+- `SKILL.md` frontmatter: 2.6.0 → 2.7.0.
+
+### Known gaps (Phase 2G backlog)
+
+Samples 09, 11, 12 contain «soft-AI-Slop» that the current linter does not catch:
+- Hedging openers («Вероятнее всего, это связано с…»).
+- Sweeping generalizations («должны уметь все», «делает всё, что может понадобиться»).
+- Evaluation without proof («значительно упрощают», «качественных площадках»).
+- Corporate research stamps («ключевые данные и инсайты», «показатель зрелости рынка»).
+- Bold inline-headers без двоеточия (внутри предложения).
+
+These are documented in `evals/found-samples/README.md` and provide grounding data for Phase 2G linter additions.
+
+---
+
 ## [2.6.0] — 2026-05-05
 
 Phase 2C — found-samples grounding additions. Driven by 8 verbatim AI-Slop samples in `evals/found-samples/`, where Phase 2 linter caught only emoji on 7/8 files. After 2C: 7/8 files produce findings.
