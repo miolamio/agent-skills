@@ -64,7 +64,7 @@ fi
 
 # Phase 2C — found-samples grounding additions (real-world AI-Slop corpus)
 if [[ -f skills/ru-editor/scripts/run_phase2c_acceptance.sh ]]; then
-  run_phase 2c "Found-samples corpus + Phase 2D linter additions (v2.7.0)" \
+  run_phase 2c "Found-samples corpus + Phase 2D-2G linter additions (v2.8.0)" \
     "bash skills/ru-editor/scripts/run_phase2c_acceptance.sh"
 fi
 

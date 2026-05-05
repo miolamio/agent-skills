@@ -7,19 +7,16 @@ expected_mode = "line_edit"
 source_url = "https://ucaas.cnews.ru/news/top/2024-03-28_tolko_5_rossijskih_kompanij"
 
 [expected_findings]
-# Phase 2F baseline: source hard=0 warn=0, edited hard=0 warn=0.
-# Текст содержит soft-AI-маркеры («Вероятнее всего», «Однако», hedging),
-# которые НЕ покрываются текущим линтером — known gap на Phase 2G.
+# Phase 2G (v2.8.0): source hard=0 warn=1 (hedging_intro «Вероятнее всего»).
+# edited hard=0 warn=0.
 
 hard_fail_min = 0
 hard_fail_max = 1
-warn_min = 0
-warn_max = 4
+warn_min = 1
+warn_max = 3
 
-# Текущий линтер не ловит маркеры этого образца (soft-AI-Slop).
-# После Phase 2G дополнения здесь могут появиться чеки.
-checks_must_fire = []
+checks_must_fire = ["hedging_intro"]
 
-checks_must_not_fire_on_edited = ["no_banned_markers", "no_warn_markers"]
+checks_must_not_fire_on_edited = ["no_banned_markers", "no_warn_markers", "hedging_intro"]
 
 expected_clean_on_lint = true

@@ -1342,5 +1342,112 @@ def _check_repeated_heading_template(doc: Document, source: Document | None, ctx
     return out
 
 
+# ---------------------------------------------------------------------------
+# Phase 2G — soft-AI-Slop additions (4 new checks).
+# Grounding: found-samples 09 (cnews HR research), 11 (skillbox Excel),
+# 12 (cossa link report), 13 (sostav RTA case study).
+# ---------------------------------------------------------------------------
+
+
+_HEDGING_INTRO_PHRASES = (
+    "Вероятнее всего",
+    "Скорее всего",
+    "По всей видимости",
+    "Так или иначе",
+    "Как правило",
+    "По сути",
+    "В принципе",
+)
+
+
+@register(name="hedging_intro", severity="WARN", mode="absolute",
+          description="Предложение открывается hedging-фразой («Вероятнее всего», «Скорее всего», …).")
+def _check_hedging_intro(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    """Sentence-level hedging — distinct from filler_paragraph_opener (paragraph-start only).
+
+    Fires at any sentence boundary (start of doc, after period/!/?, after blank line).
+    Phrases are disjoint from _FILLER_PARAGRAPH_OPENERS to avoid double-fire.
+    """
+    out: list[Finding] = []
+    text = doc.prose
+    for phrase in _HEDGING_INTRO_PHRASES:
+        pattern = re.compile(
+            r"(?:^|[.!?]\s+|\n\s*\n\s*)" + re.escape(phrase) + r"\b",
+            re.IGNORECASE | re.UNICODE,
+        )
+        for m in pattern.finditer(text):
+            opener_idx = m.start() + m.group(0).lower().find(phrase.lower())
+            line, col = _line_col_of(text, opener_idx)
+            out.append(Finding(
+                check="hedging_intro", severity="WARN",
+                line=line, col=col, match=phrase,
+                context=_context_around(text, opener_idx, 60),
+                message=f"Hedging-зачин «{phrase}». Уберите модальную обтекаемость или замените прямой формулировкой.",
+            ))
+    return out
+
+
+_SWEEPING_GENERALIZATION_RE = re.compile(
+    r"("
+    r"всё,?\s+что\s+может\s+понадобиться|"
+    r"всё,?\s+что\s+нужно\s+(?:знать|уметь|сделать)|"
+    r"всем\s+(?:нужно|необходимо|следует)\s+(?:знать|уметь)|"
+    r"должн[ыа]\s+(?:знать|уметь)\s+все\b"
+    r")",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+@register(name="sweeping_generalization", severity="WARN", mode="absolute",
+          description="Sweeping-обобщения: «должны уметь все», «всё, что нужно знать», «всё, что может понадобиться».")
+def _check_sweeping_generalization(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for m in _SWEEPING_GENERALIZATION_RE.finditer(doc.prose):
+        line, col = _line_col_of(doc.prose, m.start())
+        out.append(Finding(
+            check="sweeping_generalization", severity="WARN",
+            line=line, col=col, match=m.group(0)[:60],
+            context=_context_around(doc.prose, m.start(), 60),
+            message="Sweeping-обобщение. Замените конкретным перечнем задач или уберите.",
+        ))
+    return out
+
+
+_ODIN_FORMS = (
+    "один", "одна", "одно", "одни",
+    "одного", "одному", "одной", "одну",
+    "одним", "одном", "одних", "одними",
+)
+_ODIN_RE_GROUP = "(?:" + "|".join(_ODIN_FORMS) + ")"
+_BOLD_HYPED_EPITHET_RE = re.compile(
+    r"\*\*[^*\n]*?\b" + _ODIN_RE_GROUP +
+    r"\s+из\s+(?:ключев|главн|основн|важнейш|лучш|надёжн|надежн|ведущ)[а-я]+"
+    r"[^*\n]*?\*\*",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+@register(name="bold_in_prose_with_epithet", severity="WARN", mode="absolute",
+          description="Bold-фрагмент внутри предложения с маркетинговым эпитетом «один из ключевых …».")
+def _check_bold_in_prose_with_epithet(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    """Catches mid-sentence bold spans like «**одним из ключевых перфоманс-каналов**».
+
+    Distinct from bold_inline_header_in_list, which catches list-item bold-as-header
+    («- **Скорость**: …»). Here we flag bold-with-marketing-epithet anywhere in prose.
+    """
+    out: list[Finding] = []
+    # Use prose (not raw): metadata in <!-- ru-lint:ignore --> blocks would
+    # double-fire if we scanned raw, e.g. when source.md cites the marker itself.
+    for m in _BOLD_HYPED_EPITHET_RE.finditer(doc.prose):
+        line, col = _line_col_of(doc.prose, m.start())
+        out.append(Finding(
+            check="bold_in_prose_with_epithet", severity="WARN",
+            line=line, col=col, match=m.group(0).strip()[:60],
+            context=_context_around(doc.prose, m.start(), 60),
+            message="Bold-фрагмент с эпитетом «один из ключевых/главных/…» внутри предложения. Уберите bold или замените оценку фактом.",
+        ))
+    return out
+
+
 if __name__ == "__main__":
     sys.exit(main())

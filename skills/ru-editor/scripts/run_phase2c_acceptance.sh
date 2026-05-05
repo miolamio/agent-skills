@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase 2C (v2.7.0) acceptance for found-samples corpus:
+# Phase 2C–2G (v2.8.0) acceptance for found-samples corpus:
 #   1. brief.toml schema valid for every sample
 #   2. ru_lint.py check on source.md fires within [hard_fail_min, hard_fail_max]
 #   3. ru_lint.py check on edited.md has 0 HARD_FAIL (smoke-test invariant)

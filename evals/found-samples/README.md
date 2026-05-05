@@ -72,9 +72,9 @@ bash skills/ru-editor/scripts/run_phase2c_acceptance.sh
 
 Ожидаемое поведение: каждый `source.md` фолит ≥0 HARD_FAIL в пределах `[hard_fail_min, hard_fail_max]`, а `edited.md` всегда чист (0 HARD_FAIL).
 
-## Baseline после Phase 2D-2F (2026-05-05)
+## Baseline после Phase 2G (2026-05-05)
 
-Phase 2D-2F: 31 зарегистрированный чек, +5 фраз WARN в `banned-markers.toml`, +5 regex-чеков, +1 структурный (`repeated_heading_template`), opinion-mode whitelist, A/B-эксперимент whitelist для `unsourced_percentage`.
+Phase 2G: 33 зарегистрированных чека (11 HARD_FAIL + 22 WARN), +14 фраз WARN в `banned-markers.toml` (evaluation-without-proof + corporate-research-stamps), +3 regex-чека (`hedging_intro`, `sweeping_generalization`, `bold_in_prose_with_epithet`).
 
 ### Стратификация и fires (source.md)
 
@@ -88,28 +88,27 @@ Phase 2D-2F: 31 зарегистрированный чек, +5 фраз WARN в
 | 06 | educational | skillbox.ru | 0 | 2 | «оживляют пиксели», `filler_paragraph_opener` |
 | 07 | news/listicle | it-world.ru | 0 | 2 | `parallel_kak_tak_i` + warn-marker |
 | 08 | help-docs | giga.chat | 0 | 3 | `repeated_heading_template` × 2 + `em_dash_budget` |
-| 09 | research-summary | ucaas.cnews.ru | 0 | 0 | — soft-AI-Slop, known gap |
+| 09 | research-summary | ucaas.cnews.ru | 0 | 1 | `hedging_intro` «Вероятнее всего» |
 | 10 | b2b-listicle | vc.ru | 0 | 1 | `em_dash_budget` (плотные тире-bullet) |
-| 11 | educational-tutorial | skillbox.ru | 0 | 0 | — soft-AI-Slop, known gap |
-| 12 | corporate-blog | cossa.ru | 0 | 0 | — soft-AI-Slop, known gap |
-| 13 | marketing-case-study | sostav.ru | 0 | 0 | — цифры из A/B-эксперимента (whitelist) |
+| 11 | educational-tutorial | skillbox.ru | 0 | 3 | `sweeping_generalization` × 2 + «значительно упрощают» |
+| 12 | corporate-blog | cossa.ru | 0 | 5 | corporate-research-stamps × 5 |
+| 13 | marketing-case-study | sostav.ru | 0 | 1 | `bold_in_prose_with_epithet` «**одним из ключевых перфоманс-каналов**» |
 
 **Сравнение:**
 - Стартовая Phase 2 (8 файлов): hard=3, warn=0. **1 из 8 файлов фолил.**
 - Phase 2D (8 файлов): hard=4, warn=14. **8 из 8 файлов фолят.**
-- Phase 2F (13 файлов): hard=4, warn=17. **9 из 13 файлов фолят.** Новые soft-AI-Slop сэмплы (4) — known gap для Phase 2G.
+- Phase 2F (13 файлов): hard=4, warn=17. **9 из 13 файлов фолят.**
+- Phase 2G (13 файлов): hard=4, warn=27. **13 из 13 файлов фолят.** Soft-AI-Slop gap закрыт.
 
-## Известные пробелы — backlog Phase 2G
+## Закрытые пробелы (Phase 2G — 2026-05-05)
 
-Образцы 09, 11, 12 содержат AI-маркеры, которые текущий линтер не видит. Все три попали в один общий класс — **soft-AI-Slop** (мягкие, но узнаваемые). Кандидаты на расширение линтера:
-
-| Класс | Примеры в корпусе | Идея чека |
+| Класс | Примеры в корпусе | Реализованный чек |
 |---|---|---|
-| Hedging-интро | «Вероятнее всего, это связано с…», «На самом деле», «Как правило» в начале абзаца | Расширить `filler_paragraph_opener` или новый `hedging_intro` |
-| Sweeping generalization | «применять их должны уметь все», «делает всё, что может понадобиться» | regex `(всё что может|всем нужно|должны .* все)` — WARN |
-| Evaluation без proof | «значительно упрощают», «качественных площадках», «стратегический канал» | Список оценочных слов в TOML + контекстный whitelist (если рядом число — пропустить) |
-| Corporate research stamps | «ключевые данные и инсайты», «показатель зрелости рынка» | TOML warn_markers |
-| Bold inline-headers без двоеточия | «**одним из ключевых перфоманс-каналов** проекта» | Расширить `bold_inline_header_in_list` на любые bold внутри предложения с эпитетом |
+| Hedging-интро | «Вероятнее всего, это связано с…», «По всей видимости» (начало предложения) | `hedging_intro` (WARN) — sentence-level, disjoint от `filler_paragraph_opener` |
+| Sweeping generalization | «применять их должны уметь все», «делает всё, что может понадобиться» | `sweeping_generalization` (WARN) — regex для «всё что может/нужно», «должны уметь все», «всем нужно знать» |
+| Evaluation без proof | «значительно упрощают/повышают/ускоряют» | TOML `warn_markers` (6 форм) |
+| Corporate research stamps | «ключевые данные и инсайты», «показатель зрелости рынка», «качественных площадках», «стратегический канал», «закрепился как стратегический» | TOML `warn_markers` (8 форм) |
+| Bold inline-header без двоеточия (mid-sentence) | «**одним из ключевых перфоманс-каналов** проекта» | `bold_in_prose_with_epithet` (WARN) — bold с эпитетом «один из ключев*/главн*/основн*/важнейш*/ведущ*» |
 
 Sample 08 — шаблонная структура — закрыта в Phase 2D через `repeated_heading_template`.
 

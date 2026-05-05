@@ -409,5 +409,151 @@ class TestUnsourcedPercentageOpinionWhitelist(unittest.TestCase):
         self.assertEqual(len(f), 1)
 
 
+# ---------------------------------------------------------------------------
+# Phase 2G — soft-AI-Slop additions
+# ---------------------------------------------------------------------------
+
+
+class TestHedgingIntro(unittest.TestCase):
+    """Phase 2G: sentence-level hedging openers."""
+
+    def test_veroyatnee_vsego_warns(self):
+        text = "Они полагаются на зарубежные решения. Вероятнее всего, это связано с распространенностью."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_skoree_vsego_warns(self):
+        text = "Скорее всего, проект задержится на пару недель."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(len(f), 1)
+
+    def test_kak_pravilo_at_sentence_start_warns(self):
+        text = "Команда уже знает план. Как правило, такие задачи занимают неделю."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(len(f), 1)
+
+    def test_kak_pravilo_mid_sentence_no_warn(self):
+        # Mid-clause «как правило» — не зачин предложения.
+        text = "Сотрудники как правило не делятся чувствительной информацией на собеседованиях."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(f, [])
+
+    def test_paragraph_start_warns(self):
+        text = "Первый абзац.\n\nПо всей видимости, второй абзац о другом."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(len(f), 1)
+
+    def test_no_hedging_no_warn(self):
+        text = "Команда выпустила релиз вовремя. Все довольны результатом."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(f, [])
+
+    def test_does_not_double_fire_with_filler_paragraph_opener(self):
+        # «На самом деле» уже ловится filler_paragraph_opener.
+        # hedging_intro НЕ должен срабатывать на эти фразы — disjoint sets.
+        text = "Один абзац.\n\nНа самом деле всё иначе."
+        f = lint_check(text, "hedging_intro")
+        self.assertEqual(f, [])
+
+
+class TestSweepingGeneralization(unittest.TestCase):
+    """Phase 2G: «всё, что может понадобиться», «должны уметь все»."""
+
+    def test_vse_chto_mozhet_warns(self):
+        text = "Эти функции позволяют делать всё, что может понадобиться в работе."
+        f = lint_check(text, "sweeping_generalization")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_dolzhny_umet_vse_warns(self):
+        text = "Это базовый навык, и применять его должны уметь все сотрудники."
+        f = lint_check(text, "sweeping_generalization")
+        self.assertEqual(len(f), 1)
+
+    def test_vsem_nuzhno_znat_warns(self):
+        text = "Базовые SQL-запросы — это то, что всем нужно знать в нашей команде."
+        f = lint_check(text, "sweeping_generalization")
+        self.assertEqual(len(f), 1)
+
+    def test_specific_list_no_warn(self):
+        text = "Эти функции делают конкретные задачи: объединяют ячейки, копируют данные."
+        f = lint_check(text, "sweeping_generalization")
+        self.assertEqual(f, [])
+
+
+class TestBoldInProseWithEpithet(unittest.TestCase):
+    """Phase 2G: bold mid-sentence with marketing epithet."""
+
+    def test_odnim_iz_klyuchevykh_warns(self):
+        text = (
+            "Поиск работал по веб-целям и был **одним из ключевых перфоманс-каналов** "
+            "проекта, поэтому смена стратегии могла создать риски."
+        )
+        f = lint_check(text, "bold_in_prose_with_epithet")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_odin_iz_glavnykh_warns(self):
+        text = "Это **один из главных факторов** успеха кампании."
+        f = lint_check(text, "bold_in_prose_with_epithet")
+        self.assertEqual(len(f), 1)
+
+    def test_odna_iz_vedushchikh_warns(self):
+        text = "Компания стала **одной из ведущих платформ** на рынке."
+        f = lint_check(text, "bold_in_prose_with_epithet")
+        self.assertEqual(len(f), 1)
+
+    def test_plain_bold_no_warn(self):
+        # Bold без эпитета «один из …» — допустим.
+        text = "Используется **API REST** для интеграции."
+        f = lint_check(text, "bold_in_prose_with_epithet")
+        self.assertEqual(f, [])
+
+    def test_list_item_bold_header_no_overlap(self):
+        # bold_inline_header_in_list ловит «- **X**: …» — наш чек этот случай не дублирует.
+        text = "- **Скорость**: всё быстро"
+        f = lint_check(text, "bold_in_prose_with_epithet")
+        self.assertEqual(f, [])
+
+
+class TestPhase2GWarnMarkers(unittest.TestCase):
+    """Phase 2G: new TOML phrases — evaluation-without-proof + corporate-research."""
+
+    def test_znachitelno_uproshchayut_warns(self):
+        text = "Эти функции значительно упрощают работу с данными."
+        f = lint_check(text, "no_warn_markers")
+        names = {x.match for x in f}
+        self.assertIn("значительно упрощают", names)
+
+    def test_kachestvennykh_ploshchadkakh_warns(self):
+        text = "Размещения на качественных площадках дают результат."
+        f = lint_check(text, "no_warn_markers")
+        names = {x.match for x in f}
+        self.assertIn("качественных площадках", names)
+
+    def test_klyuchevye_dannye_i_insighty_warns(self):
+        text = "Ниже — ключевые данные и инсайты для маркетологов."
+        f = lint_check(text, "no_warn_markers")
+        names = {x.match for x in f}
+        self.assertIn("ключевые данные и инсайты", names)
+
+    def test_strategicheskiy_kanal_warns(self):
+        text = "Линкбилдинг закрепился как стратегический канал привлечения."
+        f = lint_check(text, "no_warn_markers")
+        names = {x.match for x in f}
+        # Either «стратегический канал» or «закрепился как стратегический» (or both).
+        self.assertTrue(
+            "стратегический канал" in names
+            or "закрепился как стратегический" in names
+        )
+
+    def test_pokazatel_zrelosti_rynka_warns(self):
+        text = "Это показатель зрелости рынка."
+        f = lint_check(text, "no_warn_markers")
+        names = {x.match for x in f}
+        self.assertIn("показатель зрелости рынка", names)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -7,18 +7,22 @@ expected_mode = "line_edit"
 source_url = "https://sostav.ru/publication/kejs-rta-i-zdravsiti-kak-uvelichit-dokhod-poiskovykh-kampanij-na-26-s-pomoshchyu-web2app-83506.html"
 
 [expected_findings]
-# Phase 2F baseline: source hard=0 warn=0 (после whitelist «эксперимент»),
-# edited hard=0 warn=0.
+# Phase 2G (v2.8.0): source hard=0 warn=1 (bold_in_prose_with_epithet
+# «**одним из ключевых перфоманс-каналов**»). edited hard=0 warn=0.
 # Цифры (26%, 1 п.п.) подтверждены A/B-экспериментом — не fake-stat.
-# Bold-разрывы внутри предложений — soft-AI-Slop, known gap на Phase 2G.
 
 hard_fail_min = 0
 hard_fail_max = 1
-warn_min = 0
-warn_max = 4
+warn_min = 1
+warn_max = 3
 
-checks_must_fire = []
+checks_must_fire = ["bold_in_prose_with_epithet"]
 
-checks_must_not_fire_on_edited = ["no_banned_markers", "no_warn_markers", "unsourced_percentage"]
+checks_must_not_fire_on_edited = [
+  "no_banned_markers",
+  "no_warn_markers",
+  "unsourced_percentage",
+  "bold_in_prose_with_epithet",
+]
 
 expected_clean_on_lint = true

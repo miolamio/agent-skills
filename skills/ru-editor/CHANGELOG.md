@@ -4,6 +4,37 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.8.0] — 2026-05-05
+
+Phase 2G — closing the soft-AI-Slop gap from found-samples 09, 11, 12, 13.
+
+### Added (Phase 2G — linter)
+
+- `hedging_intro` (WARN, absolute) — fires on sentence-start hedging openers («Вероятнее всего», «Скорее всего», «По всей видимости», «Так или иначе», «Как правило», «По сути», «В принципе»). Disjoint from `filler_paragraph_opener` to avoid double-fire. Catches found-sample 09 (cnews HR research).
+- `sweeping_generalization` (WARN, absolute) — regex catching «всё, что может понадобиться», «всё, что нужно знать/уметь/сделать», «всем нужно/необходимо/следует знать/уметь», «должны/должна знать/уметь все». Catches found-sample 11 (skillbox Excel).
+- `bold_in_prose_with_epithet` (WARN, absolute) — mid-sentence bold spans containing marketing epithets («**одним из ключевых перфоманс-каналов**»). Distinct from `bold_inline_header_in_list` (which targets list items). Uses `doc.prose` so metadata in `<!-- ru-lint:ignore -->` blocks does not double-fire. Catches found-sample 13 (sostav RTA).
+- `references/banned-markers.toml`: 14 new WARN phrases — evaluation-without-proof («значительно упрощают/упрощает/повышают/повышает/ускоряют/ускоряет») and corporate-research stamps («ключевые данные и инсайты», «показатель зрелости рынка», «качественных площадках», «стратегический канал», «закрепился как стратегический», и форм-варианты). Catches found-samples 11 and 12 (cossa link report).
+
+### Changed
+
+- `evals/found-samples/{09,11,12,13}/brief.toml`: bumped warn-budgets and added `checks_must_fire` to lock the new fires as regression invariants. Sample 13 also adds `bold_in_prose_with_epithet` to `checks_must_not_fire_on_edited`.
+- Total registered checks: 31 → 33 (11 HARD_FAIL + 22 WARN). Total unit tests: 176 → 197.
+- `SKILL.md` frontmatter: 2.7.0 → 2.8.0. Master runner label updated.
+
+### Recall summary
+
+Phase 2 baseline (8 samples): 1/8 fired. After 2C+2D+2F (13 samples): 9/13 fired.
+After Phase 2G: **13/13 samples fire** — all 4 known soft-AI-Slop gaps closed.
+
+### Invariants preserved
+
+- All 197 unit tests green.
+- All 4 master phases (1, 2, 3, 2c) PASSED.
+- 0 HARD_FAIL on every seed-corpus `expected.md` and every found-samples `edited.md`.
+- New checks introduce zero regressions in the seed corpus (`hedging_intro`, `sweeping_generalization`, `bold_in_prose_with_epithet` do not fire on any expected.md).
+
+---
+
 ## [2.7.0] — 2026-05-05
 
 Phase 2D + 2E + 2F — closing remaining backlog after Phase 2C.
