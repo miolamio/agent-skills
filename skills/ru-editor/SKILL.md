@@ -14,7 +14,7 @@ allowed-tools: Read, Bash(python3:*)
 license: MIT
 metadata:
   author: Anthony Vdovitchenko @ Automatica (https://t.me/aiwizards)
-  version: 2.5.0
+  version: 2.6.0
   category: editing
 ---
 <!-- ru-lint:ignore-end -->

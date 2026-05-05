@@ -177,5 +177,160 @@ class TestIntensifierBurst(unittest.TestCase):
         self.assertEqual(f, [])
 
 
+class TestNotOnlyButAlso(unittest.TestCase):
+    """Phase 2C: «не только X, но и Y» construction."""
+
+    def test_simple_construction_warns(self):
+        text = "ИИ нужен не только для генерации текста, но и для создания видео."
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_yagla_style_warns(self):
+        text = "Искусственный интеллект теперь не только для умных разговоров и беспилотных машин, но и для рекламы."
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(len(f), 1)
+
+    def test_two_constructions_warn_twice(self):
+        text = (
+            "Не только сегодня, но и завтра. И не только здесь, но и там."
+        )
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(len(f), 2)
+
+    def test_no_construction_no_warn(self):
+        text = "ИИ нужен для генерации текста и для создания видео."
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(f, [])
+
+    def test_too_far_apart_no_warn(self):
+        # «не только» and «но и» separated by >120 chars — not the same construction.
+        far = "x " * 80
+        text = f"Не только это {far}но и другое."
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(f, [])
+
+    def test_sentence_boundary_no_warn(self):
+        # Period between «не только» and «но и» — separate sentences.
+        text = "Не только это важно. Это критично, но и другое тоже."
+        f = lint_check(text, "not_only_but_also")
+        self.assertEqual(f, [])
+
+
+class TestParallelKakTakI(unittest.TestCase):
+    """Phase 2C: «как X, так и Y» construction."""
+
+    def test_simple_warns(self):
+        text = "Это полезно как для разработчиков, так и для дизайнеров."
+        f = lint_check(text, "parallel_kak_tak_i")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_kak_sredi_warns(self):
+        text = "Инструменты популярны как среди профессионалов, так и у широкой аудитории."
+        f = lint_check(text, "parallel_kak_tak_i")
+        self.assertEqual(len(f), 1)
+
+    def test_no_construction_no_warn(self):
+        text = "Это работает как часы. Так получилось."
+        f = lint_check(text, "parallel_kak_tak_i")
+        self.assertEqual(f, [])
+
+
+class TestBoldInlineHeaderInList(unittest.TestCase):
+    """Phase 2C: list items with **Bold**: opening — typical AI markdown."""
+
+    def test_bold_with_colon_warns(self):
+        text = "- **Скорость**: всё быстро\n- **Простота**: всё понятно\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(len(f), 2)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_bold_with_em_dash_warns(self):
+        text = "* **Имя** — описание\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(len(f), 1)
+
+    def test_plain_list_no_warn(self):
+        text = "- Скорость\n- Простота\n- Удобство\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(f, [])
+
+    def test_bold_without_colon_no_warn(self):
+        # «- **Скорость** всё быстро» — bold но без двоеточия/тире.
+        text = "- **Скорость** всё быстро\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(f, [])
+
+    def test_bold_in_prose_no_warn(self):
+        # Bold вне списка не считается.
+        text = "Это **жирный** текст в обычном абзаце.\n"
+        f = lint_check(text, "bold_inline_header_in_list")
+        self.assertEqual(f, [])
+
+
+class TestFillerParagraphOpener(unittest.TestCase):
+    """Phase 2C: filler/transitional paragraph openers."""
+
+    def test_na_samom_dele_warns(self):
+        text = "Первый абзац.\n\nНа самом деле второй абзац о другом."
+        f = lint_check(text, "filler_paragraph_opener")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_krome_togo_warns(self):
+        text = "Первый абзац.\n\nКроме того, есть ещё один аспект."
+        f = lint_check(text, "filler_paragraph_opener")
+        self.assertEqual(len(f), 1)
+
+    def test_bolee_togo_warns(self):
+        text = "Первый абзац.\n\nБолее того, ситуация изменилась."
+        f = lint_check(text, "filler_paragraph_opener")
+        self.assertEqual(len(f), 1)
+
+    def test_first_paragraph_warns(self):
+        # Фраза в начале документа — тоже зачин параграфа.
+        text = "На самом деле всё иначе."
+        f = lint_check(text, "filler_paragraph_opener")
+        self.assertEqual(len(f), 1)
+
+    def test_phrase_in_middle_no_warn(self):
+        # Та же фраза в середине абзаца — допустимо.
+        text = "Один аспект. Кроме того, есть второй аспект."
+        f = lint_check(text, "filler_paragraph_opener")
+        self.assertEqual(f, [])
+
+
+class TestUnsourcedPercentage(unittest.TestCase):
+    """Phase 2C: percentage in prose without nearby source citation."""
+
+    def test_unsourced_percentage_warns(self):
+        text = "Более 70% пользователей выбирают наш продукт каждый день."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_with_url_no_warn(self):
+        text = "По данным https://example.com/report 70% пользователей выбирают это."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_with_citation_marker_no_warn(self):
+        text = "Согласно исследованию VTsIOM, 70% респондентов поддерживают идею."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_financial_discount_no_warn(self):
+        # «скидка 30%» — точная цифра в финансовом контексте, не риторика.
+        text = "До 1 марта действует скидка 30% на годовую подписку."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_no_percentage_no_warn(self):
+        text = "Большинство пользователей выбирают наш продукт."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+
 if __name__ == "__main__":
     unittest.main()

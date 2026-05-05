@@ -1110,5 +1110,164 @@ def _check_intensifier_burst(doc: Document, source: Document | None, ctx: dict) 
     return out
 
 
+# ---------------------------------------------------------------------------
+# Phase 2C — found-samples grounding additions (5 regex-based checks).
+# ---------------------------------------------------------------------------
+
+
+_NOT_ONLY_BUT_ALSO_RE = re.compile(
+    r"\bне\s+только\b[^.!?\n]{1,120}\bно\s+и\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+@register(name="not_only_but_also", severity="WARN", mode="absolute",
+          description="Конструкция «не только X, но и Y» — типичный AI-маркер.")
+def _check_not_only_but_also(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for m in _NOT_ONLY_BUT_ALSO_RE.finditer(doc.prose):
+        line, col = _line_col_of(doc.prose, m.start())
+        out.append(Finding(
+            check="not_only_but_also", severity="WARN",
+            line=line, col=col, match=m.group(0)[:60],
+            context=_context_around(doc.prose, m.start(), 60),
+            message="Конструкция «не только… но и» — AI-маркер. Перепишите простее или разбейте на два предложения.",
+        ))
+    return out
+
+
+_PARALLEL_KAK_TAK_I_RE = re.compile(
+    r"\bкак\s+(?:среди\s+|у\s+|для\s+|в\s+)?[^,.;!?\n]{1,120}[,]?\s*так\s+и\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+@register(name="parallel_kak_tak_i", severity="WARN", mode="absolute",
+          description="Параллельная конструкция «как X, так и Y» — стофер-маркер.")
+def _check_parallel_kak_tak_i(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for m in _PARALLEL_KAK_TAK_I_RE.finditer(doc.prose):
+        line, col = _line_col_of(doc.prose, m.start())
+        out.append(Finding(
+            check="parallel_kak_tak_i", severity="WARN",
+            line=line, col=col, match=m.group(0)[:60],
+            context=_context_around(doc.prose, m.start(), 60),
+            message="Параллельная конструкция «как X, так и Y» — стилистический стофер. Перечислите явно или сократите.",
+        ))
+    return out
+
+
+_BOLD_INLINE_HEADER_IN_LIST_RE = re.compile(
+    r"^[ \t]*[-*+][ \t]+\*\*[^*\n]{1,60}\*\*[ \t]*[:—]",
+    re.MULTILINE | re.UNICODE,
+)
+
+
+@register(name="bold_inline_header_in_list", severity="WARN", mode="absolute",
+          description="Bold-инлайн-заголовок в элементе списка — AI-маркдаун-шаблон.")
+def _check_bold_inline_header_in_list(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    for m in _BOLD_INLINE_HEADER_IN_LIST_RE.finditer(doc.raw):
+        line, col = _line_col_of(doc.raw, m.start())
+        out.append(Finding(
+            check="bold_inline_header_in_list", severity="WARN",
+            line=line, col=col, match=m.group(0).strip(),
+            context=_context_around(doc.raw, m.start(), 60),
+            message="Bold-инлайн-заголовок в списке. Превратите в обычное предложение или вынесите в подзаголовок.",
+        ))
+    return out
+
+
+_FILLER_PARAGRAPH_OPENERS = (
+    "На самом деле",
+    "Кроме того",
+    "Более того",
+    "В целом",
+    "Что касается",
+    "В заключение",
+    "Во-первых",
+    "Прежде всего",
+    "Таким образом",
+)
+
+
+@register(name="filler_paragraph_opener", severity="WARN", mode="absolute",
+          description="Параграф открывается transitional/filler-фразой («На самом деле», «Кроме того», …).")
+def _check_filler_paragraph_opener(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    for opener in _FILLER_PARAGRAPH_OPENERS:
+        # Match either at start of doc or after blank line.
+        pattern = re.compile(
+            r"(?:^|\n\s*\n)\s*" + re.escape(opener) + r"\b",
+            re.IGNORECASE | re.UNICODE,
+        )
+        for m in pattern.finditer(text):
+            # Locate the opener itself, not the leading whitespace.
+            opener_idx = m.start() + m.group(0).lower().find(opener.lower())
+            line, col = _line_col_of(text, opener_idx)
+            out.append(Finding(
+                check="filler_paragraph_opener", severity="WARN",
+                line=line, col=col, match=opener,
+                context=_context_around(text, opener_idx, 60),
+                message=f"Параграф открывается filler-фразой «{opener}». Начните с главной мысли или конкретного факта.",
+            ))
+    return out
+
+
+_PERCENT_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?\s*%", re.UNICODE)
+_CITATION_MARKERS = (
+    "по данным",
+    "согласно",
+    "источник",
+    "исследование",
+    "опрос",
+    "отчёт",
+    "отчет",
+    "статистик",
+    "по словам",
+    "по информации",
+    # Financial / pricing context — exact figures, not rhetorical claims:
+    "скидка",
+    "скидку",
+    "скидки",
+    "дисконт",
+    "комиссия",
+    "комиссию",
+    "ндс",
+    "налог",
+    "ставк",  # ставка / ставку / ставки
+    "тариф",
+    "пошлин",
+)
+
+
+@register(name="unsourced_percentage", severity="WARN", mode="absolute",
+          description="Процент в прозе без ссылки или цитаты-источника в проксимити.")
+def _check_unsourced_percentage(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    out: list[Finding] = []
+    text = doc.prose
+    text_lower = text.lower()
+    for m in _PERCENT_TOKEN_RE.finditer(text):
+        idx = m.start()
+        window_start = max(0, idx - 200)
+        window_end = min(len(text), idx + 200)
+        window = text[window_start:window_end]
+        window_lower = text_lower[window_start:window_end]
+
+        has_url = bool(re.search(r"https?://", window))
+        has_citation = any(marker in window_lower for marker in _CITATION_MARKERS)
+
+        if not has_url and not has_citation:
+            line, col = _line_col_of(text, idx)
+            out.append(Finding(
+                check="unsourced_percentage", severity="WARN",
+                line=line, col=col, match=m.group(0),
+                context=_context_around(text, idx, 60),
+                message=f"Процент «{m.group(0)}» без указания источника. Добавьте ссылку или цитату — иначе удалите цифру.",
+            ))
+    return out
+
+
 if __name__ == "__main__":
     sys.exit(main())

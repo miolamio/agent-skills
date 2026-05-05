@@ -21,6 +21,7 @@ schema_version = "1.0"
 [hard_fail_markers]
 # Phase 1 locked these in. Lowercase, exact-match (case-insensitive comparison happens in linter).
 # Phase 2B added 8 more from empirical grounding (15 cases). Total: 14.
+# Phase 2C (found-samples grounding, 2026-04-28) added 2 more cliché-only phrases.
 phrases = [
   # Phase 1 locked-in (do NOT remove — test_hard_fail_phrases_locked):
   "погружаемся",
@@ -38,6 +39,9 @@ phrases = [
   "нового поколения",
   "погружение",
   "погрузиться",
+  # Phase 2C found-samples grounding (cliché-only, never legitimate):
+  "вот тут на помощь приходит",
+  "вот тут на помощь приходят",
 ]
 
 [warn_markers]
@@ -78,6 +82,19 @@ phrases = [
   "хорошей недели",
   "стандартом индустрии",
   "друзья, мы невероятно рады",
+  # Phase 2C found-samples grounding (2026-04-28):
+  "настоящий прорыв",
+  "также отметим",
+  "также отмечу",
+  "стремительно растёт",
+  "стремительно набирает популярность",
+  "принципиально отличается",
+  "первый представитель своего класса",
+  "продвинутые пользователи",
+  "приобретают всё большую популярность",
+  "приобретает всё большую популярность",
+  "оживляют пиксели",
+  "широкий спектр задач",
 ]
 
 [synonym_clusters]

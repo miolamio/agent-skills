@@ -4,6 +4,33 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.6.0] — 2026-05-05
+
+Phase 2C — found-samples grounding additions. Driven by 8 verbatim AI-Slop samples in `evals/found-samples/`, where Phase 2 linter caught only emoji on 7/8 files. After 2C: 7/8 files produce findings.
+
+### Added
+
+- `references/banned-markers.toml`: 2 new HARD_FAIL phrases («вот тут на помощь приходит/приходят») and 12 new WARN phrases («настоящий прорыв», «также отметим/отмечу», «стремительно растёт», «стремительно набирает популярность», «принципиально отличается», «первый представитель своего класса», «продвинутые пользователи», «приобретают/приобретает всё большую популярность», «оживляют пиксели», «широкий спектр задач»).
+- 5 new regex-based WARN checks in `ru_lint.py`:
+  - `not_only_but_also` — конструкция «не только X, но и Y» (≤120 chars, sentence-bounded).
+  - `parallel_kak_tak_i` — параллель «как X, так и Y» (опционально с «среди/у/для/в»).
+  - `bold_inline_header_in_list` — bullet item, открытый `**Bold**:` или `**Bold** —`.
+  - `filler_paragraph_opener` — параграфы, начинающиеся на «На самом деле», «Кроме того», «Более того», «В целом», «Что касается», «В заключение», «Во-первых», «Прежде всего», «Таким образом».
+  - `unsourced_percentage` — процент в прозе без URL и без citation-маркера в окне ±200 chars. Whitelist финансовых сигналов (скидка, дисконт, комиссия, НДС, ставка, тариф, пошлина) — точные цифры в pricing-контексте не флагуются.
+- `evals/found-samples/` — 8 verified verbatim AI-Slop samples из открытых источников (vc.ru, habr.com, sostav.ru, lpmotor.ru, yagla.ru, skillbox.ru, it-world.ru, giga.chat). README с методологией сбора, baseline-таблицей и known gaps.
+- 24 новых unit-теста в `test_checks_warn.py` (positive/negative для каждого нового чека + financial whitelist test).
+
+### Changed
+
+- Total registered checks: 24 → 29. Total unit tests: 142 → 166.
+
+### Notes
+
+- Phase 2C делал на основании 8 страниц одного жанрового кластера (обзоры русскоязычных нейросетей 2026). Расширение на другие жанры — в Phase 2D.
+- Sample 08 (giga.chat) намеренно остался без находок — его AI-Slop структурный (повторяющиеся блоки «Возможности/Недостатки» под каждой моделью), а не лексический. Кандидат на structural-checker в будущих фазах.
+
+---
+
 ## [2.5.0] — 2026-04-29
 
 Phase 3 of v3.0.0 overhaul: editing modes + tools tightening.
