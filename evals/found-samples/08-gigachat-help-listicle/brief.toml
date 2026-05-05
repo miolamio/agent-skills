@@ -1,0 +1,23 @@
+[meta]
+schema_version = "1.0"
+genre = "help-docs"
+intensity = "medium"
+mode = "line_edit"
+expected_mode = "line_edit"
+source_url = "https://giga.chat/help/articles/russian-ai-review"
+
+[expected_findings]
+# Phase 2D baseline: source hard=0 warn=3 (em_dash_budget + repeated_heading_template ×2),
+# edited hard=0 warn=1.
+# Расширено в Phase 2D с 1 модели до 2, чтобы запустить repeated_heading_template.
+
+hard_fail_min = 0
+hard_fail_max = 2
+warn_min = 1
+warn_max = 5
+
+checks_must_fire = ["repeated_heading_template"]
+
+checks_must_not_fire_on_edited = ["repeated_heading_template", "no_banned_markers", "no_warn_markers"]
+
+expected_clean_on_lint = true

@@ -1240,6 +1240,20 @@ _CITATION_MARKERS = (
     "тариф",
     "пошлин",
 )
+_OPINION_MARKERS = (
+    "считаю",
+    "думаю",
+    "мне кажется",
+    "по-моему",
+    "по моему",
+    "убеждён",
+    "убежден",
+    "честно говоря",
+    "на мой взгляд",
+    "с моей точки зрения",
+    "лично я",
+    "если честно",
+)
 
 
 @register(name="unsourced_percentage", severity="WARN", mode="absolute",
@@ -1257,14 +1271,67 @@ def _check_unsourced_percentage(doc: Document, source: Document | None, ctx: dic
 
         has_url = bool(re.search(r"https?://", window))
         has_citation = any(marker in window_lower for marker in _CITATION_MARKERS)
+        has_opinion = any(marker in window_lower for marker in _OPINION_MARKERS)
 
-        if not has_url and not has_citation:
+        if not has_url and not has_citation and not has_opinion:
             line, col = _line_col_of(text, idx)
             out.append(Finding(
                 check="unsourced_percentage", severity="WARN",
                 line=line, col=col, match=m.group(0),
                 context=_context_around(text, idx, 60),
                 message=f"Процент «{m.group(0)}» без указания источника. Добавьте ссылку или цитату — иначе удалите цифру.",
+            ))
+    return out
+
+
+_TEMPLATE_HEADING_PREFIXES = (
+    "возможности и преимущества",
+    "преимущества и недостатки",
+    "плюсы и минусы",
+    "недостатки",
+    "преимущества",
+    "ключевые особенности",
+    "особенности",
+    "применение",
+    "использование",
+    "характеристики",
+    "ключевые возможности",
+    "возможности",
+)
+
+
+@register(name="repeated_heading_template", severity="WARN", mode="absolute",
+          description="2+ заголовков начинаются с одной marketing-template-фразы.")
+def _check_repeated_heading_template(doc: Document, source: Document | None, ctx: dict) -> list[Finding]:
+    """Detect AI-listicle structure: «### Возможности и преимущества X / ### Возможности и преимущества Y»."""
+    out: list[Finding] = []
+    headings = doc.headings  # list[(level, text)]
+    if len(headings) < 2:
+        return out
+
+    # Sort prefixes longest-first so «возможности и преимущества» wins over «возможности».
+    prefixes = sorted(_TEMPLATE_HEADING_PREFIXES, key=len, reverse=True)
+
+    # Group headings by which template prefix they start with (first match wins).
+    groups: dict[str, list[str]] = {}
+    for _level, htext in headings:
+        h_lower = htext.strip().lower()
+        for prefix in prefixes:
+            if h_lower.startswith(prefix):
+                groups.setdefault(prefix, []).append(htext.strip())
+                break
+
+    text = doc.raw
+    for prefix, hits in groups.items():
+        if len(hits) >= 2:
+            # Locate the FIRST occurrence in raw text to anchor the finding.
+            idx = text.lower().find(prefix)
+            line, col = _line_col_of(text, idx) if idx >= 0 else (0, 0)
+            out.append(Finding(
+                check="repeated_heading_template", severity="WARN",
+                line=line, col=col, match=prefix,
+                context=" / ".join(hits[:3]),
+                message=f"Шаблонный заголовок «{prefix}» повторяется {len(hits)} раз. AI-листикл-структура — переписать в плотный текст или таблицу.",
             ))
     return out
 

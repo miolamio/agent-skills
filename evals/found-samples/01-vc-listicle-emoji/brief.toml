@@ -1,0 +1,25 @@
+[meta]
+schema_version = "1.0"
+genre = "seo-listicle"
+intensity = "heavy"
+mode = "line_edit"
+expected_mode = "line_edit"
+source_url = "https://vc.ru/ai/2792796-rossijskie-nejroseti-2026-top-14-luchshikh-servisov"
+
+[expected_findings]
+# Phase 2D baseline: source hard=3 warn=0, edited hard=0 warn=2.
+# Buffer ±2 for future check additions.
+
+hard_fail_min = 2
+hard_fail_max = 5
+warn_min = 0
+warn_max = 4
+
+# Must fire on source.md:
+checks_must_fire = ["no_emoji"]
+
+# Must NOT fire on edited.md (smoke-test invariant):
+checks_must_not_fire_on_edited = ["no_emoji", "no_arrows_in_prose", "no_straight_quotes", "no_double_hyphen", "no_banned_markers"]
+
+# Idempotency: lint(edited.md) must produce 0 HARD_FAIL.
+expected_clean_on_lint = true

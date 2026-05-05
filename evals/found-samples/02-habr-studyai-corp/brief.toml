@@ -1,0 +1,21 @@
+[meta]
+schema_version = "1.0"
+genre = "corporate-blog"
+intensity = "medium"
+mode = "line_edit"
+expected_mode = "line_edit"
+source_url = "https://habr.com/ru/companies/studyai/articles/1022356/"
+
+[expected_findings]
+# Phase 2D baseline: source hard=0 warn=4, edited hard=0 warn=0.
+
+hard_fail_min = 0
+hard_fail_max = 2
+warn_min = 2
+warn_max = 7
+
+checks_must_fire = ["no_warn_markers"]
+
+checks_must_not_fire_on_edited = ["no_warn_markers", "no_banned_markers"]
+
+expected_clean_on_lint = true

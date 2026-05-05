@@ -332,5 +332,76 @@ class TestUnsourcedPercentage(unittest.TestCase):
         self.assertEqual(f, [])
 
 
+class TestRepeatedHeadingTemplate(unittest.TestCase):
+    """Phase 2D: 2+ headings start with the same marketing-template prefix."""
+
+    def test_vozmozhnosti_repeated_warns(self):
+        text = (
+            "### Возможности и преимущества YandexGPT\n\n"
+            "Текст.\n\n"
+            "### Возможности и преимущества Kandinsky 3.1\n\n"
+            "Текст.\n"
+        )
+        f = lint_check(text, "repeated_heading_template")
+        self.assertEqual(len(f), 1)
+        self.assertEqual(f[0].severity, "WARN")
+
+    def test_nedostatki_repeated_warns(self):
+        text = (
+            "### Недостатки YandexGPT\n\n"
+            "Текст.\n\n"
+            "### Недостатки Kandinsky\n\n"
+            "Текст.\n"
+        )
+        f = lint_check(text, "repeated_heading_template")
+        self.assertEqual(len(f), 1)
+
+    def test_two_template_groups_warn_twice(self):
+        text = (
+            "### Возможности и преимущества A\n"
+            "### Недостатки A\n"
+            "### Возможности и преимущества B\n"
+            "### Недостатки B\n"
+        )
+        f = lint_check(text, "repeated_heading_template")
+        # Two distinct template prefixes each with 2 hits.
+        self.assertEqual(len(f), 2)
+
+    def test_single_template_heading_no_warn(self):
+        text = "### Возможности и преимущества YandexGPT\n\nТекст.\n"
+        f = lint_check(text, "repeated_heading_template")
+        self.assertEqual(f, [])
+
+    def test_non_template_repeated_prefix_no_warn(self):
+        # «Установка X» / «Установка Y» — обычные tech-заголовки, не шаблон.
+        text = "## Установка зависимостей\nТекст.\n## Установка приложения\nТекст.\n"
+        f = lint_check(text, "repeated_heading_template")
+        self.assertEqual(f, [])
+
+
+class TestUnsourcedPercentageOpinionWhitelist(unittest.TestCase):
+    """Phase 2D: opinion-mode markers suppress unsourced_percentage."""
+
+    def test_schitayu_no_warn(self):
+        text = "Я считаю, что 90% того, что нам показывают, — маркетинг."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_dumayu_no_warn(self):
+        text = "Думаю, 80% этих проектов закроется через год."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_po_moemu_no_warn(self):
+        text = "По-моему, 70% всей шумихи — пустое."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(f, [])
+
+    def test_no_opinion_marker_still_warns(self):
+        text = "70% пользователей в восторге от продукта."
+        f = lint_check(text, "unsourced_percentage")
+        self.assertEqual(len(f), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
