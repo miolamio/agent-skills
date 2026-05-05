@@ -83,17 +83,18 @@ Professional English-to-Russian translator with a three-step agentic workflow: t
 
 ---
 
-### ru-editor `v2.2.0`
+### ru-editor `v2.9.0`
 
-Russian text editor. Transforms AI-generated or bureaucratic text into natural, idiomatic Russian. Three-step workflow: edit (18 operations), self-check (19 checks), final polish.
+Russian text editor with deterministic linter. Transforms AI-generated or bureaucratic text into natural, idiomatic Russian. Picks one of four editing modes (proofread, line_edit, technical, deep_rewrite) from request phrasing or an explicit `Mode:` prefix.
 
 **Features:**
-- Removes AI markers: ChatGPT-isms, repetitive structure, synonym triples
-- Cleans stop words, empty evaluations, bureaucratese, nominalizations
-- Replaces pretentious words with simple ones
-- Anglicism audit: replaces unnecessary English in Russian text
-- Jargon clarity: adds explanations for opaque terms at first use
-- Fixes typography: guillemets, em dashes, lists, letter "yo"
+- Deterministic regex linter (`ru_lint.py`, 33 checks: 11 HARD_FAIL + 22 WARN), Pure Python 3.11+, no third-party deps
+- Removes AI markers: ChatGPT-isms, hedging openers, sweeping generalizations, corporate-research stamps, marketing epithets, repeated heading templates
+- Output Discipline: blocks emoji, arrows in prose, straight quotes, double hyphens, em-dash overuse
+- Factual Integrity: diff-mode catches new numbers, percentages, money tokens, dropped headings, broken code spans/URLs
+- Mode-aware budgets: per-mode length-ratio and list-items tolerance bounds
+- Inforstyle cleanup: stop words, empty evaluations, bureaucratese, nominalizations
+- Anglicism audit, jargon clarity, Russian typography (guillemets, em dashes, letter «ё»)
 
 **Triggers:** "отредактируй", "причеши текст", "убери ИИ-шность", "инфостиль"
 

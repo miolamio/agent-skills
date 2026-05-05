@@ -4,6 +4,13 @@ All notable changes to the `ru-editor` skill are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+> **Note on entry references.** Some entries below mention development-only paths
+> (`evals/seed-corpus/`, `evals/found-samples/`, `scripts/run_phase*.sh`,
+> `skills/ru-editor/scripts/tests/`). These were the test/grounding artifacts
+> used while building the linter and are not shipped with the published skill.
+> The runtime — `SKILL.md`, `references/*.md`, `scripts/ru_lint.py` — is fully
+> self-contained.
+
 ## [2.9.0] — 2026-05-05
 
 Phase 2H — false-positive cleanup grounded in the v2.8.0 quality audit.

@@ -4,3 +4,11 @@ node_modules/
 *.log
 __pycache__/
 *.pyc
+.pytest_cache/
+
+# Local development / testing infrastructure (not part of the published skill).
+evals/
+skills/*/scripts/tests/
+skills/ru-editor/scripts/check_phase1.sh
+skills/ru-editor/scripts/run_phase*.sh
+scripts/run_all_tests.sh
